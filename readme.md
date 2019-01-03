@@ -46,6 +46,9 @@ search loyalbooks
     scraper = LoyalBooks()
     for book in scraper.scrap_by_genre("Science fiction"):
         print(book.as_json)
+        
+    for book in LoyalBooks.search_audiobooks(author="Lovecraft"):
+        print(book.as_json)
 
 
 ## TODO
@@ -57,7 +60,6 @@ future scrappers
 * http://freeclassicaudiobooks.com/
 * https://www.gutenberg.org/browse/categories/1
 * http://www.openculture.com/freeaudiobooks
-* http://www.loyalbooks.com
 * https://www.storynory.com/
 * http://etc.usf.edu/lit2go/
 * https://www.learnoutloud.com/
