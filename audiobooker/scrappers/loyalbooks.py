@@ -261,8 +261,8 @@ class LoyalBooks(AudioBookSource):
         if LoyalBooks._genres is not None:
             return str(LoyalBooks._genres.index(genre))
         genres = []
-        for genre in LoyalBooks.scrap_genres():
-            genres.append(genre)
+        for gen in LoyalBooks.scrap_genres():
+            genres.append(gen)
         genres = sorted(genres)
         return str(genres.index(genre))
 
