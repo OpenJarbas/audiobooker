@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from itertools import cycle
 from audiobooker.utils.proxies import get_proxies, random_user_agent, \
     USER_AGENTS
+from audiobooker.exceptions import RateLimitedError
 
 
 class GoogleSearch(object):
@@ -101,15 +102,15 @@ class GoogleSearch(object):
             html = GoogleSearch.make_request(url, data)
             soup = BeautifulSoup(html, "html.parser")
             if GoogleSearch.RATE_LIMITED in soup.text:
-                raise ConnectionRefusedError("Google banned IP address")
+                raise RateLimitedError("Google banned IP address")
             return soup
-        except Exception as e:
+        except RateLimitedError as e:
             if GoogleSearch.PROXY_FALLBACK:
                 GoogleSearch.remove_proxy(GoogleSearch.CURRENT_PROXY)
                 if len(GoogleSearch.PROXIES):
                     return GoogleSearch.get_soup(url, data)
-                raise ConnectionRefusedError("Google banned IP of all proxies")
-            raise ConnectionRefusedError("Google banned IP address")
+                raise RateLimitedError("Google banned IP of all proxies")
+            raise
 
     @staticmethod
     def total_results(query):

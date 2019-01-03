@@ -36,3 +36,7 @@ class UnknownDurationError(AudioBookerException):
 
 class ScrappingError(AudioBookerException):
     pass
+
+
+class RateLimitedError(ScrappingError, ConnectionRefusedError):
+    """Google banned IP address"""
