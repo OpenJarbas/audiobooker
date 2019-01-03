@@ -2,6 +2,7 @@ import requests
 import json
 import subprocess
 import feedparser
+from pprint import pprint
 
 
 class LibrivoxGenre(object):
@@ -104,6 +105,7 @@ class LibrivoxAudioBook(object):
 
     def play(self, cmd="cvlc %1 --play-and-exit"):
         for stream_url in self.streamer:
+            print("playing", stream_url)
             if isinstance(cmd, str):
                 cmd = cmd.replace("%1", stream_url)
             elif isinstance(cmd, list):
@@ -154,15 +156,16 @@ class Librivox(object):
     librivox_author_url = "https://librivox.org/api/feed/authors/?%s&format=json"
 
     @staticmethod
-    def scrap_all_audiobooks():
-        url = Librivox.librivox_audiobook_url % "extended=1"
+    def scrap_all_audiobooks(limit=2000, offset=0):
+        url = Librivox.librivox_audiobook_url % \
+              ("limit=" + str(limit) + "offset=" + str(offset) + "&extended=1")
         json_data = requests.get(url).json()['books']
         for k in json_data:
             yield LibrivoxAudioBook(json_data=json_data[k])
 
     @staticmethod
-    def get_all_audiobooks():
-        return [book for book in Librivox.scrap_all_audiobooks()]
+    def get_all_audiobooks(limit=2000, offset=0):
+        return [book for book in Librivox.scrap_all_audiobooks(limit, offset)]
 
     @staticmethod
     def get_audiobook(book_id):
@@ -198,15 +201,13 @@ class Librivox(object):
 
 
 if __name__ == "__main__":
-    from pprint import pprint
+    pprint(Librivox.get_all_audiobooks(limit=10))
 
     author = Librivox.get_author("3534")
     pprint(author.last_name)
 
     book = Librivox.get_audiobook("127")
     pprint(book.title)
-
-    pprint(Librivox.get_all_audiobooks())
 
     book = Librivox.search_audiobooks(title="Art of War")[0]
     pprint(book.title)

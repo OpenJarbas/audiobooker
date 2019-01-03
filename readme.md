@@ -20,7 +20,7 @@ Leave a suggestion!
     book = Librivox.get_audiobook("127")
     pprint(book.title)
     
-    books = Librivox.get_all_audiobooks()    
+    books = Librivox.get_all_audiobooks(limit=50)    
     
     book = Librivox.search_audiobooks(title="Art of War")[0]
     
