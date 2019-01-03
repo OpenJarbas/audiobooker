@@ -205,15 +205,16 @@ class LibrivoxAudioBook(object):
         for stream_url in self.streamer:
             print("playing", stream_url)
             if isinstance(cmd, str):
-                cmd = cmd.replace("%1", stream_url)
-            elif isinstance(cmd, list):
+                cmd = cmd.split(" ")
+            if isinstance(cmd, list):
+                play_cmd = cmd
                 for idx, c in enumerate(cmd):
                     if c == "%1":
-                        cmd[idx] = stream_url
+                        play_cmd[idx] = stream_url
                         break
+                subprocess.check_output(play_cmd, shell=True)
             else:
                 raise TypeError
-            subprocess.check_output(cmd, shell=True)
 
     @property
     def authors(self):
@@ -380,11 +381,11 @@ if __name__ == "__main__":
     book = Librivox.get_audiobook("127")
     pprint(book.title)
 
-    book = Librivox.search_audiobooks(title="Art of War")[0]
+    book = Librivox.search_audiobooks(title="War of the worlds")[0]
     pprint(book.title)
     pprint(book.description)
     pprint(book.authors)
     pprint(book.librivox_url)
     pprint(book.streams)
     pprint(book.rss_data)
-    book.play()
+    book.play_mplayer()
