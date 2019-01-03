@@ -1,10 +1,30 @@
-class UnknownBookId(Exception):
+class AudioBookerException(Exception):
     pass
 
 
-class UnknownGenreId(Exception):
+class UnknownBookIdException(AudioBookerException):
     pass
 
 
-class UnknownAuthorId(Exception):
+class UnknownGenreIdException(AudioBookerException):
+    pass
+
+
+class UnknownAuthorIdException(AudioBookerException):
+    pass
+
+
+class UnknownBookException(AudioBookerException):
+    pass
+
+
+class UnknownGenreException(AudioBookerException):
+    pass
+
+
+class UnknownAuthorException(AudioBookerException):
+    pass
+
+
+class ParseErrorException(AudioBookerException):
     pass

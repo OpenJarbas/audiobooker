@@ -2,8 +2,10 @@ import json
 import subprocess
 import requests
 from bs4 import BeautifulSoup
-from audiobooker.exceptions import UnknownAuthorId, UnknownBookId, \
-    UnknownGenreId
+from audiobooker.exceptions import UnknownAuthorIdException, \
+    UnknownBookIdException, \
+    UnknownGenreIdException, UnknownAuthorException, UnknownBookException, \
+    UnknownGenreException, ParseErrorException
 
 
 class BookGenre(object):
@@ -154,6 +156,12 @@ class AudioBook(object):
         if from_data:
             self.from_json(from_data)
         self.raw = from_data or {}
+
+    def parse_page(self):
+        raise ParseErrorException
+
+    def from_page(self):
+        data = self.parse_page()
 
     @property
     def html(self):
@@ -310,6 +318,29 @@ class AudioBookSource(object):
     """
     """
 
+    @property
+    def genres(self):
+        return sorted(['Advice', 'Instruction', 'Ancient Texts',
+                       'Biography', 'Memoirs', 'Languages',
+                       'Myths/Legends', 'Holiday', 'Art',
+                       'Politics', 'Short stories', 'Romance',
+                       'Essay/Short nonfiction', 'Fiction',
+                       'Epistolary fiction', 'Science',
+                       'Nature', 'Dramatic Works',
+                       'Spy stories', 'History', 'Non-fiction',
+                       'Historical Fiction', 'Play', 'Children',
+                       'Satire', 'Humor',
+                       'Classics (antiquity)', 'Travel',
+                       'Religion', 'Adventure', 'Animals',
+                       'Psychology', 'Sea stories',
+                       'Horror/Ghost stories', 'Fantasy',
+                       'Cookery', 'Poetry', 'Self Published',
+                       'Westerns', 'Comedy', 'Music',
+                       'Economics', 'Fairy tales', 'Tragedy',
+                       'Teen/Young adult', 'Literature',
+                       'War stories', 'Science fiction',
+                       'Philosophy', 'Mystery'])
+
     @staticmethod
     def _get_html(url):
         try:
@@ -334,6 +365,19 @@ class AudioBookSource(object):
         return []
 
     @staticmethod
+    def scrap_by_genre(genre, offset=1, limit=-1):
+        """
+
+        Generator, yields AudioBook objects
+
+        Args:
+            genre:
+            limit:
+            offset:
+        """
+        return []
+
+    @staticmethod
     def get_all_audiobooks(limit=2000, offset=0):
         """
 
@@ -348,6 +392,19 @@ class AudioBookSource(object):
         return []
 
     @staticmethod
+    def get_genre_id(genre):
+        """
+
+        Args:
+            genre:
+
+        Returns:
+            genre_id (str)
+
+        """
+        raise UnknownGenreException
+
+    @staticmethod
     def get_genre(genre_id):
         """
 
@@ -358,7 +415,7 @@ class AudioBookSource(object):
             BookGenre
 
         """
-        raise UnknownGenreId
+        raise UnknownGenreIdException
 
     @staticmethod
     def get_audiobook(book_id):
@@ -371,7 +428,7 @@ class AudioBookSource(object):
             AudioBook
 
         """
-        raise UnknownBookId
+        raise UnknownBookIdException
 
     @staticmethod
     def get_author(author_id):
@@ -383,7 +440,32 @@ class AudioBookSource(object):
         Returns:
             BookAuthor
         """
-        raise UnknownAuthorId
+        raise UnknownAuthorIdException
+
+    @staticmethod
+    def get_audiobook_id(book):
+        """
+
+        Args:
+            book:
+
+        Returns:
+
+            book_id (str)
+        """
+        raise UnknownBookException
+
+    @staticmethod
+    def get_author_id(author):
+        """
+
+        Args:
+            author_id:
+
+        Returns:
+            author id (str)
+        """
+        raise UnknownAuthorException
 
     @staticmethod
     def search_audiobooks(since=None, author=None, title=None, genre=None):

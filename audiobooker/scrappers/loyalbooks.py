@@ -354,9 +354,18 @@ class LoyalBooks(AudioBookSource):
                                       'Philosophy', 'Mystery']
         return sorted(self._genres) or []
 
-    def scrap_by_genre(self, genre, start_page=1, max_pages=-1):
-        url = self.genre_pages[genre] + "?page=" + str(start_page)
-        max_pages = int(max_pages)
+    def scrap_by_genre(self, genre, offset=1, limit=-1):
+        """
+
+        Generator, yields AudioBook objects
+
+        Args:
+            genre:
+            limit:
+            offset:
+        """
+        url = self.genre_pages[genre] + "?page=" + str(offset)
+        limit = int(limit)
         soup = self._get_soup(self._get_html(url))
         el = soup.find("table", {"class": "layout2-blue"})
         if el is None:
@@ -418,12 +427,12 @@ class LoyalBooks(AudioBookSource):
         if ">" not in pages:
             return
 
-        # check if max_pages crawled
-        if max_pages > 0 and int(start_page) > max_pages:
+        # check if limit crawled
+        if limit > 0 and int(offset) > limit:
             return
 
         # crawl next page
-        for book in self.scrap_by_genre(genre, start_page + 1, max_pages):
+        for book in self.scrap_by_genre(genre, offset + 1, limit):
             yield book
 
     @staticmethod
