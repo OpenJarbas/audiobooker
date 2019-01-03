@@ -30,5 +30,9 @@ class ParseErrorException(AudioBookerException):
     pass
 
 
-class UnknownRuntimeError(AudioBookerException):
+class UnknownDurationError(AudioBookerException):
+    pass
+
+
+class ScrappingError(AudioBookerException):
     pass

@@ -3,7 +3,7 @@ import subprocess
 import requests
 from bs4 import BeautifulSoup
 from audiobooker.exceptions import UnknownAuthorIdException, \
-    UnknownBookIdException, UnknownRuntimeError, \
+    UnknownBookIdException, UnknownDurationError, ScrappingError, \
     UnknownGenreIdException, UnknownAuthorException, UnknownBookException, \
     UnknownGenreException, ParseErrorException
 
@@ -158,7 +158,7 @@ class AudioBook(object):
         self.raw = from_data or {}
 
     def calc_runtime(self, data=None):
-        raise UnknownRuntimeError
+        raise UnknownDurationError
 
     def parse_page(self):
         raise ParseErrorException
@@ -365,7 +365,7 @@ class AudioBookSource(object):
             limit:
             offset:
         """
-        return []
+        raise ScrappingError
 
     @staticmethod
     def scrap_by_genre(genre, offset=1, limit=-1):
@@ -378,7 +378,7 @@ class AudioBookSource(object):
             limit:
             offset:
         """
-        return []
+        raise ScrappingError
 
     @staticmethod
     def get_all_audiobooks(limit=2000, offset=0):
@@ -392,7 +392,7 @@ class AudioBookSource(object):
             list : list of LibrivoxAudioBook objects
 
         """
-        return []
+        raise ScrappingError
 
     @staticmethod
     def get_genre_id(genre):
@@ -483,4 +483,4 @@ class AudioBookSource(object):
         Returns:
             list : list of AudioBook objects
         """
-        return []
+        raise ScrappingError
