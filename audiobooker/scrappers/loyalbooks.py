@@ -114,8 +114,8 @@ class LoyalBooksAudioBook(AudioBook):
             self.url = rss[0]["link"]
 
         for rss_data in rss:
-            first_name = ""
-            last_name = rss_data["author"]
+            last_name = ""
+            first_name = rss_data["author"]
             names = last_name.split(" ")
             if len(names) > 1:
                 first_name = names[0]
@@ -380,7 +380,8 @@ if __name__ == "__main__":
 
     scraper = LoyalBooks()
     for book in scraper.scrap_by_genre("Science fiction"):
-        pprint(book.authors)
+        for a in book.authors:
+            print(a.as_json)
         break
 
     # pprint(scraper.scrap_genres())
