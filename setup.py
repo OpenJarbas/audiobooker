@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='audiobooker',
-    version='0.2.1',
+    version='0.2.2',
     packages=['audiobooker', 'audiobooker.scrappers'],
     install_requires=["requests", "bs4", "feedparser"],
     url='https://github.com/JarbasAl/audiobooker',

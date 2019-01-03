@@ -1,6 +1,7 @@
 import feedparser
 from audiobooker.scrappers import AudioBook, BookAuthor, BookGenre, \
     AudioBookSource
+from audiobooker.utils.google_search import GoogleSearch
 
 
 class LoyalBooksAudioBook(AudioBook):
@@ -516,15 +517,15 @@ class LoyalBooks(AudioBookSource):
         print(session.get("https://cse.google.com/cse/element/v1",
                           data=params))
         """
-        from audiobooker.google_search import GoogleSearch
+
         query += " site:" + LoyalBooks.base_url
-        for response in GoogleSearch().search(query, 15):
-            for result in response.results:
-                if "www.loyalbooks.com/book/" not in result.url:
-                    continue
-                if result.url.endswith("/feed"):
-                    continue
-                yield LoyalBooksAudioBook(url=result.url)
+
+        for result in GoogleSearch.search(query, 15):
+            if "www.loyalbooks.com/book/" not in result.url:
+                continue
+            if result.url.endswith("/feed"):
+                continue
+            yield LoyalBooksAudioBook(url=result.url)
 
         return []
 
