@@ -188,8 +188,7 @@ class AudioBook(object):
                 for idx, c in enumerate(cmd):
                     if c == "%1":
                         play_cmd[idx] = stream_url
-                        break
-                subprocess.check_output(play_cmd, shell=True)
+                subprocess.call(" ".join(play_cmd), shell=True)
             else:
                 raise TypeError
 
