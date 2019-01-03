@@ -31,3 +31,22 @@ Leave a suggestion!
     print(book.streams)
     print(book.rss_data)
     book.play()
+
+
+## TODO
+
+future scrappers
+
+* http://hppodcraft.com
+* http://www.kiddierecords.com/
+* http://freeclassicaudiobooks.com/
+* https://www.gutenberg.org/browse/categories/1
+* http://www.openculture.com/freeaudiobooks
+* http://www.loyalbooks.com
+* https://www.storynory.com/
+* http://etc.usf.edu/lit2go/
+* https://www.learnoutloud.com/
+* https://archive.org/details/MindWebs_201410/001CarcinomaAngels-NormanSpinrad.wav
+* https://scribl.com
+* http://www.audioanarchy.org/
+* http://thoughtaudio.com/
