@@ -1,0 +1,18 @@
+from pprint import pprint
+
+author = Librivox.get_author("3534")
+pprint(author.last_name)
+
+book = Librivox.get_audiobook("127")
+pprint(book.title)
+
+pprint(Librivox.get_all_audiobooks())
+
+book = Librivox.search_audiobooks(title="Art of War")[0]
+pprint(book.title)
+pprint(book.description)
+pprint(book.authors)
+pprint(book.librivox_url)
+pprint(book.get_streams())
+pprint(book.rss_data)
+book.play()
