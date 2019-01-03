@@ -9,7 +9,7 @@ class LoyalBooksAudioBook(AudioBook):
 
     def __init__(self, title="", authors=None, description="", genres=None,
                  book_id="", runtime=0, url="", rss_url="", img="", rating=0,
-                 language='english', json_data=None):
+                 language='english', from_data=None):
         """
 
         Args:
@@ -22,7 +22,7 @@ class LoyalBooksAudioBook(AudioBook):
             url:
             rss_url:
             language:
-            json_data:
+            from_data:
         """
         AudioBook.__init__(self, title, authors, description, genres,
                            book_id, runtime, url, img, language)
@@ -30,10 +30,14 @@ class LoyalBooksAudioBook(AudioBook):
         self.rating = rating
         if not self.book_id and self.url:
             self.book_id = self.url.split("/")[-1]
-        if json_data:
-            self.from_json(json_data)
-        self.raw = json_data or {}
+        if from_data:
+            self.from_json(from_data)
+        self.raw = from_data or {}
         self.from_rss()
+
+    def parse_page(self):
+        soup = self.soup
+        return {}
 
     @property
     def rss_data(self):
@@ -65,7 +69,7 @@ class LoyalBooksAudioBook(AudioBook):
         Returns:
 
         """
-        return [BookAuthor(json_data=a) for a in self._authors]
+        return [BookAuthor(from_data=a) for a in self._authors]
 
     @property
     def genres(self):
@@ -74,7 +78,7 @@ class LoyalBooksAudioBook(AudioBook):
         Returns:
 
         """
-        return [BookGenre(json_data=a) for a in self._genres]
+        return [BookGenre(from_data=a) for a in self._genres]
 
     def from_json(self, json_data):
         """
@@ -88,28 +92,39 @@ class LoyalBooksAudioBook(AudioBook):
         if not self.book_id and self.url:
             self.book_id = self.url.split("/")[-1]
 
+    def calc_runtime(self, rss=None):
+        rss = rss or self.rss_data["entries"]
+        for rss_data in rss:
+            runtime = rss_data["itunes_duration"].split(":")
+            if len(runtime) == 1:  # seconds
+                self.runtime += int(runtime[0])
+            elif len(runtime) == 2:  # minutes : seconds
+                self.runtime += int(runtime[1]) + (int(runtime[0]) * 60)
+            elif len(runtime) == 3:  # hours : minutes : seconds
+                self.runtime += int(runtime[2]) + (int(runtime[1]) * 60) + \
+                                (int(runtime[0]) * 120)
+
     def from_rss(self):
-        rss_data = self.rss_data["entries"][0]
-        if not len(self._authors):
+        rss = self.rss_data["entries"]
+
+        if self.runtime < 1:
+            self.calc_runtime()
+
+        if not self.url:
+            self.url = rss[0]["link"]
+
+        for rss_data in rss:
             first_name = ""
             last_name = rss_data["author"]
             names = last_name.split(" ")
             if len(names) > 1:
                 first_name = names[0]
                 last_name = " ".join(names[1:])
-            self._authors.append(BookAuthor(first_name=first_name,
-                                            last_name=last_name))
-        if self.runtime < 1:
-            runtime = rss_data["itunes_duration"].split(":")
-            if len(runtime) == 1:  # seconds
-                self.runtime = int(runtime[0])
-            elif len(runtime) == 2:  # minutes : seconds
-                self.runtime = int(runtime[1]) + (int(runtime[0]) * 60)
-            elif len(runtime) == 3:  # hours : minutes : seconds
-                self.runtime = int(runtime[2]) + (int(runtime[1]) * 60) + \
-                               (int(runtime[0]) * 120)
-        if not self.url:
-            self.url = rss_data["link"]
+            author = {"first_name": first_name,
+                      "last_name": last_name,
+                      "id": ""}
+            if author not in self._authors:
+                self._authors.append(author)
 
     @property
     def as_json(self):
@@ -352,21 +367,21 @@ class LoyalBooks(AudioBookSource):
         """
         url = 'http://www.loyalbooks.com/book/' + book_id
         book = LoyalBooksAudioBook(url=url, title=book_id.replace("-", " "))
-        book.from_rss()
         return book
 
 
 if __name__ == "__main__":
     from pprint import pprint
 
-    book = LoyalBooks.get_audiobook('Short-Science-Fiction-Collection-1')
-    book.play()
+    # book = LoyalBooks.get_audiobook('Short-Science-Fiction-Collection-1')
+    # book.play()
 
     # print(LoyalBooks.get_genre(40))
 
     scraper = LoyalBooks()
-    # for book in scraper.scrap_by_genre("Science fiction"):
-    #    pprint(book.as_json)
+    for book in scraper.scrap_by_genre("Science fiction"):
+        pprint(book.authors)
+        break
 
     # pprint(scraper.scrap_genres())
     # pprint(scraper.genres)

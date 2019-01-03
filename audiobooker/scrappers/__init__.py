@@ -10,18 +10,22 @@ class BookGenre(object):
     """
     """
 
-    def __init__(self, name="", genre_id="", json_data=None):
+    def __init__(self, name="", genre_id="", from_data=None):
         """
 
         Args:
             name:
             genre_id:
-            json_data:
+            from_data:
         """
         self.name = name
         self.genre_id = genre_id
-        if json_data:
-            self.from_json(json_data)
+        if from_data:
+            self.from_json(from_data)
+
+    @property
+    def as_json(self):
+        return {"name": self.name, "id": self.genre_id}
 
     def from_json(self, json_data):
         """
@@ -31,6 +35,8 @@ class BookGenre(object):
         """
         if isinstance(json_data, str):
             json_data = json.loads(json_data)
+        if isinstance(json_data, BookGenre):
+            json_data = json_data.as_json
         if not isinstance(json_data, dict):
             raise TypeError
         self.name = json_data.get("name", self.name)
@@ -58,20 +64,20 @@ class BookAuthor(object):
     """
 
     def __init__(self, first_name="", last_name="", author_id="",
-                 json_data=None):
+                 from_data=None):
         """
 
         Args:
             first_name:
             last_name:
             author_id:
-            json_data:
+            from_data:
         """
         self.first_name = first_name
         self.last_name = last_name
         self.author_id = author_id
-        if json_data:
-            self.from_json(json_data)
+        if from_data:
+            self.from_json(from_data)
 
     def from_json(self, json_data):
         """
@@ -81,11 +87,19 @@ class BookAuthor(object):
         """
         if isinstance(json_data, str):
             json_data = json.loads(json_data)
+        if isinstance(json_data, BookAuthor):
+            json_data = json_data.as_json
         if not isinstance(json_data, dict):
+            print(json_data, type(json_data))
             raise TypeError
         self.first_name = json_data.get("first_name", self.first_name)
         self.last_name = json_data.get("last_name", self.last_name)
         self.author_id = json_data.get("id", self.author_id)
+
+    @property
+    def as_json(self):
+        return {"first_name": self.first_name, "last_name": self.last_name,
+                "id": self.author_id}
 
     def __str__(self):
         """
@@ -110,7 +124,7 @@ class AudioBook(object):
 
     def __init__(self, title="", authors=None, description="", genres=None,
                  book_id="", runtime=0, url="", img="", language='english',
-                 json_data=None):
+                 from_data=None):
         """
 
         Args:
@@ -121,7 +135,7 @@ class AudioBook(object):
             book_id:
             runtime:
             language:
-            json_data:
+            from_data:
         """
 
         self.img = img
@@ -133,9 +147,23 @@ class AudioBook(object):
         self.book_id = book_id
         self.runtime = runtime
         self.lang = language.lower()
-        if json_data:
-            self.from_json(json_data)
-        self.raw = json_data or {}
+        if from_data:
+            self.from_json(from_data)
+        self.raw = from_data or {}
+
+    @property
+    def html(self):
+        try:
+            return requests.get(self.url).text
+        except Exception as e:
+            try:
+                return requests.get(self.url, verify=False).text
+            except:
+                return None
+
+    @property
+    def soup(self):
+        return BeautifulSoup(self.html, "html.parser")
 
     @property
     def description(self):
@@ -206,7 +234,7 @@ class AudioBook(object):
         Returns:
 
         """
-        return [BookAuthor(json_data=a) for a in self._authors]
+        return [BookAuthor(from_data=a) for a in self._authors]
 
     @property
     def genres(self):
@@ -215,7 +243,7 @@ class AudioBook(object):
         Returns:
 
         """
-        return [BookGenre(json_data=a) for a in self._genres]
+        return [BookGenre(from_data=a) for a in self._genres]
 
     @property
     def as_json(self):

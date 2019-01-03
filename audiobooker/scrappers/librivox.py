@@ -10,7 +10,7 @@ class LibrivoxAudioBook(AudioBook):
 
     def __init__(self, title="", authors=None, description="", genres=None,
                  book_id="", runtime=0, url="", img="", rss_url="",
-                 copyright_year=0, language='english', json_data=None):
+                 copyright_year=0, language='english', from_data=None):
         """
 
         Args:
@@ -24,15 +24,15 @@ class LibrivoxAudioBook(AudioBook):
             rss_url:
             copyright_year:
             language:
-            json_data:
+            from_data:
         """
         AudioBook.__init__(self, title, authors, description, genres,
                            book_id, runtime, url, img, language)
         self.rss_url = rss_url
         self.copyright_year = copyright_year
-        if json_data:
-            self.from_json(json_data)
-        self.raw = json_data or {}
+        if from_data:
+            self.from_json(from_data)
+        self.raw = from_data or {}
 
     @property
     def description(self):
@@ -73,7 +73,7 @@ class LibrivoxAudioBook(AudioBook):
         Returns:
 
         """
-        return [BookAuthor(json_data=a) for a in self._authors]
+        return [BookAuthor(from_data=a) for a in self._authors]
 
     @property
     def genres(self):
@@ -82,7 +82,7 @@ class LibrivoxAudioBook(AudioBook):
         Returns:
 
         """
-        return [BookGenre(json_data=a) for a in self._genres]
+        return [BookGenre(from_data=a) for a in self._genres]
 
     def from_json(self, json_data):
         """
@@ -126,7 +126,7 @@ class Librivox(AudioBookSource):
               ("limit=" + str(limit) + "offset=" + str(offset) + "&extended=1")
         json_data = requests.get(url).json()['books']
         for k in json_data:
-            yield LibrivoxAudioBook(json_data=json_data[k])
+            yield LibrivoxAudioBook(from_data=json_data[k])
 
     @staticmethod
     def get_all_audiobooks(limit=2000, offset=0):
@@ -155,7 +155,7 @@ class Librivox(AudioBookSource):
         """
         url = Librivox.librivox_audiobook_url % ("id=" + str(book_id),)
         json_data = requests.get(url).json()['books']
-        return LibrivoxAudioBook(json_data=json_data[0])
+        return LibrivoxAudioBook(from_data=json_data[0])
 
     @staticmethod
     def get_author(author_id):
@@ -169,7 +169,7 @@ class Librivox(AudioBookSource):
         """
         url = Librivox.librivox_author_url % ("id=" + str(author_id),)
         json_data = requests.get(url).json()["authors"]
-        return BookAuthor(json_data=json_data[0])
+        return BookAuthor(from_data=json_data[0])
 
     @staticmethod
     def search_audiobooks(since=None, author=None, title=None, genre=None):
@@ -200,7 +200,7 @@ class Librivox(AudioBookSource):
         searchterm = "&".join(searchterm)
         url = Librivox.librivox_audiobook_url % (searchterm,)
         json_data = requests.get(url).json()["books"]
-        return [LibrivoxAudioBook(json_data=a) for a in json_data]
+        return [LibrivoxAudioBook(from_data=a) for a in json_data]
 
 
 if __name__ == "__main__":
