@@ -318,8 +318,10 @@ class AudioBook(object):
 
 
 class AudioBookSource(object):
-    """
-    """
+    base_url = ""
+    popular_url = ""
+    genres_url = ""
+    authors_url = ""
 
     @property
     def genres(self):
@@ -356,7 +358,7 @@ class AudioBookSource(object):
         return BeautifulSoup(html, "html.parser")
 
     @staticmethod
-    def scrap_all_audiobooks(limit=2000, offset=0):
+    def scrap_popular(limit=-1, offset=0):
         """
 
         Generator, yields AudioBook objects
@@ -368,7 +370,19 @@ class AudioBookSource(object):
         raise ScrappingError
 
     @staticmethod
-    def scrap_by_genre(genre, offset=1, limit=-1):
+    def scrap_all_audiobooks(limit=-1, offset=0):
+        """
+
+        Generator, yields AudioBook objects
+
+        Args:
+            limit:
+            offset:
+        """
+        raise ScrappingError
+
+    @staticmethod
+    def scrap_by_genre(genre, limit=-1, offset=0):
         """
 
         Generator, yields AudioBook objects

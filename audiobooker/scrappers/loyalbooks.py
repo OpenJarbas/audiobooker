@@ -169,11 +169,10 @@ class LoyalBooksAudioBook(AudioBook):
                 if not last_name:
                     last_name = first_name
                     first_name = ""
-            author = {"first_name": first_name,
-                      "last_name": last_name,
-                      "id": ""}
-            if author not in self._authors:
-                self._authors.append(author)
+            author = BookAuthor(from_data={"first_name": first_name,
+                                           "last_name": last_name})
+            if author.as_json not in self._authors:
+                self._authors.append(author.as_json)
 
     def from_page(self):
         data = self.parse_page()
@@ -215,6 +214,7 @@ class LoyalBooksAudioBook(AudioBook):
 
 class LoyalBooks(AudioBookSource):
     base_url = "http://www.loyalbooks.com"
+    popular_url = "http://www.loyalbooks.com"
     genres_url = "http://www.loyalbooks.com/genre-menu"
     _genres = None
     _genre_pages = None
@@ -354,7 +354,52 @@ class LoyalBooks(AudioBookSource):
                                       'Philosophy', 'Mystery']
         return sorted(self._genres) or []
 
-    def scrap_by_genre(self, genre, offset=1, limit=-1):
+    def _parse_book_div(self, book):
+        try:
+            url = self.base_url + book.find("a")[
+                "href"].strip()
+            img = book.find("img")
+            if img:
+                img = self.base_url + img["src"].strip()
+            name = book.find("b")
+            if name:
+                name = name.text.strip()
+                author = book.text.replace(name, "").strip()
+            else:
+                name, author = book.find("div", {"class": "s-left"}) \
+                    .text.split(" By: ")
+            if book.find(id="star1") is not None:
+                rating = 1
+            elif book.find(id="star2") is not None:
+                rating = 2
+            elif book.find(id="star3") is not None:
+                rating = 3
+            elif book.find(id="star4") is not None:
+                rating = 4
+            elif book.find(id="star5") is not None:
+                rating = 5
+            else:
+                rating = 0
+            names = author.split(" ")
+            if len(names):
+                first_name = names[0].strip()
+                last_name = " ".join(names[1:]).strip()
+                if not last_name:
+                    last_name = first_name
+                    first_name = ""
+            else:
+                first_name = ""
+                last_name = author.strip()
+            return LoyalBooksAudioBook(title=name.strip(), url=url,
+                                       img=img or "", rating=rating,
+                                       authors=[BookAuthor(
+                                           first_name=first_name,
+                                           last_name=last_name).as_json])
+        except Exception as e:
+            pass  # probably an add
+        return None
+
+    def scrap_by_genre(self, genre, limit=-1, offset=0):
         """
 
         Generator, yields AudioBook objects
@@ -376,51 +421,13 @@ class LoyalBooks(AudioBookSource):
             books = el.find_all("td", {"class": "layout3"})
 
         for book in books:
-            try:
-                url = self.base_url + book.find("a")[
-                    "href"].strip()
-                img = book.find("img")
-                if img:
-                    img = self.base_url + img["src"].strip()
-                name = book.find("b")
-                if name:
-                    name = name.text.strip()
-                    author = book.text.replace(name, "").strip()
-                else:
-                    name, author = book.find("div", {"class": "s-left"}) \
-                        .text.split(" By: ")
-                if book.find(id="star1") is not None:
-                    rating = 1
-                elif book.find(id="star2") is not None:
-                    rating = 2
-                elif book.find(id="star3") is not None:
-                    rating = 3
-                elif book.find(id="star4") is not None:
-                    rating = 4
-                elif book.find(id="star5") is not None:
-                    rating = 5
-                else:
-                    rating = 0
-                names = author.split(" ")
-                if len(names):
-                    first_name = names[0].strip()
-                    last_name = " ".join(names[1:]).strip()
-                    if not last_name:
-                        last_name = first_name
-                        first_name = ""
-                else:
-                    first_name = ""
-                    last_name = author.strip()
-                yield LoyalBooksAudioBook(title=name.strip(), url=url,
-                                          img=img or "", rating=rating,
-                                          genres=[BookGenre(name=genre,
-                                                            genre_id=self.get_genre_id(
-                                                                genre))],
-                                          authors=[BookAuthor(
-                                              first_name=first_name,
-                                              last_name=last_name)])
-            except Exception as e:
-                pass  # probably an add
+            book = self._parse_book_div(book)
+            if book is None:
+                continue
+            book._genres = [BookGenre(name=genre, url=self.genre_pages[genre],
+                                      genre_id=self.get_genre_id(
+                                          genre)).as_json],
+            yield book
 
         # check if last page reached
         pages = soup.find("div", {"class": "result-pages"}).text
@@ -434,6 +441,22 @@ class LoyalBooks(AudioBookSource):
         # crawl next page
         for book in self.scrap_by_genre(genre, offset + 1, limit):
             yield book
+
+    def scrap_popular(self, limit=-1, offset=0):
+        """
+
+        Generator, yields AudioBook objects
+
+        Args:
+            limit:
+            offset:
+        """
+        soup = self._get_soup(self._get_html(self.popular_url))
+        books = soup.find(summary="Audio books").find_all("td")
+        for b in books:
+            b = self._parse_book_div(b)
+            if b is not None:
+                yield b
 
     @staticmethod
     def get_audiobook(book_id):
@@ -454,8 +477,8 @@ class LoyalBooks(AudioBookSource):
 if __name__ == "__main__":
     from pprint import pprint
 
-    book = LoyalBooks.get_audiobook('Slave-Is-A-Slave-by-H-Beam-Piper')
-    pprint(book.parse_page())
+    # book = LoyalBooks.get_audiobook('Slave-Is-A-Slave-by-H-Beam-Piper')
+    # pprint(book.parse_page())
     # for a in book.authors:
     #    print(a.as_json)
     # book.play()
@@ -463,10 +486,11 @@ if __name__ == "__main__":
     # print(LoyalBooks.get_genre(40))
 
     scraper = LoyalBooks()
-    for book in scraper.scrap_by_genre("Science fiction"):
-        print(book.description)
+    for book in scraper.scrap_popular():
+        pprint(book.as_json)
 
-        break
+    # for book in scraper.scrap_by_genre("Science fiction"):
+    #    pprint(book.as_json)
 
     # pprint(scraper.scrap_genres())
     # pprint(scraper.genres)

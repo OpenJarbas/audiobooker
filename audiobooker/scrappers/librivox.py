@@ -109,8 +109,8 @@ class LibrivoxAudioBook(AudioBook):
 class Librivox(AudioBookSource):
     """
     """
-    librivox_audiobook_url = "https://librivox.org/api/feed/audiobooks/?%s&format=json"
-    librivox_author_url = "https://librivox.org/api/feed/authors/?%s&format=json"
+    base_url = "https://librivox.org/api/feed/audiobooks/?%s&format=json"
+    authors_url = "https://librivox.org/api/feed/authors/?%s&format=json"
 
     @staticmethod
     def scrap_all_audiobooks(limit=2000, offset=0):
@@ -122,7 +122,7 @@ class Librivox(AudioBookSource):
             limit:
             offset:
         """
-        url = Librivox.librivox_audiobook_url % \
+        url = Librivox.base_url % \
               ("limit=" + str(limit) + "offset=" + str(offset) + "&extended=1")
         json_data = requests.get(url).json()['books']
         for k in json_data:
@@ -153,7 +153,7 @@ class Librivox(AudioBookSource):
             LibrivoxAudioBook
 
         """
-        url = Librivox.librivox_audiobook_url % ("id=" + str(book_id),)
+        url = Librivox.base_url % ("id=" + str(book_id),)
         json_data = requests.get(url).json()['books']
         return LibrivoxAudioBook(from_data=json_data[0])
 
@@ -167,7 +167,7 @@ class Librivox(AudioBookSource):
         Returns:
 
         """
-        url = Librivox.librivox_author_url % ("id=" + str(author_id),)
+        url = Librivox.authors_url % ("id=" + str(author_id),)
         json_data = requests.get(url).json()["authors"]
         return BookAuthor(from_data=json_data[0])
 
@@ -198,7 +198,7 @@ class Librivox(AudioBookSource):
         if not searchterm:
             raise TypeError
         searchterm = "&".join(searchterm)
-        url = Librivox.librivox_audiobook_url % (searchterm,)
+        url = Librivox.base_url % (searchterm,)
         json_data = requests.get(url).json()["books"]
         return [LibrivoxAudioBook(from_data=a) for a in json_data]
 
