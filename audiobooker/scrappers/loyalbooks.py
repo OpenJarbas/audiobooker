@@ -4,8 +4,7 @@ from audiobooker.scrappers import AudioBook, BookAuthor, BookGenre, \
 
 
 class LoyalBooksAudioBook(AudioBook):
-    """
-    """
+    base_url = "http://www.loyalbooks.com"
 
     def __init__(self, title="", authors=None, description="", genres=None,
                  book_id="", runtime=0, url="", rss_url="", img="", rating=0,
@@ -34,10 +33,55 @@ class LoyalBooksAudioBook(AudioBook):
             self.from_json(from_data)
         self.raw = from_data or {}
         self.from_rss()
+        self.from_page()
 
     def parse_page(self):
-        soup = self.soup
-        return {}
+        description = self.soup.find("font",
+                                     {"class": "book-description"}).text
+        if self.soup.find(id="star1") is not None:
+            rating = 1
+        elif self.soup.find(id="star2") is not None:
+            rating = 2
+        elif self.soup.find(id="star3") is not None:
+            rating = 3
+        elif self.soup.find(id="star4") is not None:
+            rating = 4
+        elif self.soup.find(id="star5") is not None:
+            rating = 5
+        else:
+            rating = 0
+        author = self.soup.find("font", {"class": "book-author"})
+        author_name = author.text.replace("By: ", "")
+
+        names = author_name.split(" ")
+        if len(names):
+            first_name = names[0].strip()
+            last_name = " ".join(names[1:]).strip()
+            if not last_name:
+                last_name = first_name
+                first_name = ""
+        else:
+            first_name = ""
+            last_name = author_name.strip()
+
+        author_url = author.find("a")
+        if author_url:
+            author_url = self.base_url + author_url["href"]
+
+        authors = [BookAuthor(url=author_url, first_name=first_name,
+                              last_name=last_name)]
+
+        genres = []
+        genres_table = self.soup.find(summary="Genres for this book")
+        if genres_table:
+            genres_urls = genres_table.find_all("a")
+            for a in genres_urls:
+                url = self.base_url + a["href"]
+                genre = a.text.strip()
+                genres.append(BookGenre(name=genre, url=url))
+
+        return {"description": description, "rating": rating, "genres": genres,
+                "authors": authors}
 
     @property
     def rss_data(self):
@@ -114,17 +158,33 @@ class LoyalBooksAudioBook(AudioBook):
             self.url = rss[0]["link"]
 
         for rss_data in rss:
-            last_name = ""
-            first_name = rss_data["author"]
+            first_name = ""
+            last_name = rss_data["author"]
             names = last_name.split(" ")
             if len(names) > 1:
-                first_name = names[0]
-                last_name = " ".join(names[1:])
+                first_name = names[0].strip()
+                last_name = " ".join(names[1:]).strip()
+                if not last_name:
+                    last_name = first_name
+                    first_name = ""
             author = {"first_name": first_name,
                       "last_name": last_name,
                       "id": ""}
             if author not in self._authors:
                 self._authors.append(author)
+
+    def from_page(self):
+        data = self.parse_page()
+        if self.rating < 1:
+            self.rating = data["rating"]
+        if not self._description:
+            self._description = data["description"]
+        for genre in data["genres"]:
+            if genre.as_json not in self._genres:
+                self._genres.append(genre.as_json)
+        for author in data["authors"]:
+            if author.as_json not in self._authors:
+                self._authors.append(author.as_json)
 
     @property
     def as_json(self):
@@ -327,6 +387,9 @@ class LoyalBooks(AudioBookSource):
                 if len(names):
                     first_name = names[0].strip()
                     last_name = " ".join(names[1:]).strip()
+                    if not last_name:
+                        last_name = first_name
+                        first_name = ""
                 else:
                     first_name = ""
                     last_name = author.strip()
@@ -373,15 +436,18 @@ class LoyalBooks(AudioBookSource):
 if __name__ == "__main__":
     from pprint import pprint
 
-    # book = LoyalBooks.get_audiobook('Short-Science-Fiction-Collection-1')
+    book = LoyalBooks.get_audiobook('Slave-Is-A-Slave-by-H-Beam-Piper')
+    pprint(book.parse_page())
+    # for a in book.authors:
+    #    print(a.as_json)
     # book.play()
 
     # print(LoyalBooks.get_genre(40))
 
     scraper = LoyalBooks()
     for book in scraper.scrap_by_genre("Science fiction"):
-        for a in book.authors:
-            print(a.as_json)
+        print(book.description)
+
         break
 
     # pprint(scraper.scrap_genres())
