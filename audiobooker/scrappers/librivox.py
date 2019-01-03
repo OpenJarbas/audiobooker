@@ -9,8 +9,8 @@ class LibrivoxAudioBook(AudioBook):
     """
 
     def __init__(self, title="", authors=None, description="", genres=None,
-                 book_id="", runtime=0, url="", rss_url="", copyright_year=0,
-                 language='english', json_data=None):
+                 book_id="", runtime=0, url="", img="", rss_url="",
+                 copyright_year=0, language='english', json_data=None):
         """
 
         Args:
@@ -27,7 +27,7 @@ class LibrivoxAudioBook(AudioBook):
             json_data:
         """
         AudioBook.__init__(self, title, authors, description, genres,
-                           book_id, runtime, url, language)
+                           book_id, runtime, url, img, language)
         self.rss_url = rss_url
         self.copyright_year = copyright_year
         if json_data:
@@ -92,6 +92,7 @@ class LibrivoxAudioBook(AudioBook):
         """
         AudioBook.from_json(self, json_data)
         self.url = json_data.get("url_librivox", self.url)
+        self.runtime = json_data.get("totaltimesecs", self.runtime)
         self.copyright_year = json_data.get("copyright_year",
                                             self.copyright_year)
         self.rss_url = json_data.get("url_rss", self.rss_url)
