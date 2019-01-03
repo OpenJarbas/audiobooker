@@ -13,7 +13,7 @@ book = Librivox.search_audiobooks(title="Art of War")[0]
 pprint(book.title)
 pprint(book.description)
 pprint(book.authors)
-pprint(book.librivox_url)
+pprint(book.url)
 pprint(book.streams)
 pprint(book.rss_data)
 book.play()

@@ -14,7 +14,7 @@ Leave a suggestion!
 
 search libribox
 
-    from audiobooker.librivox import Librivox
+    from audiobooker.scrappers.librivox import Librivox
     
     author = Librivox.get_author("3534")
     print(author.last_name)
@@ -31,7 +31,7 @@ interact with a book object
     print(book.title)
     print(book.description)
     print(book.authors)
-    print(book.librivox_url)
+    print(book.url)
     print(book.streams)
     print(book.rss_data)
     book.play()
