@@ -138,9 +138,9 @@ class LoyalBooksAudioBook(AudioBook):
         if not self.book_id and self.url:
             self.book_id = self.url.split("/")[-1]
 
-    def calc_runtime(self, rss=None):
-        rss = rss or self.rss_data["entries"]
-        for rss_data in rss:
+    def calc_runtime(self, data=None):
+        data = data or self.rss_data["entries"]
+        for rss_data in data:
             runtime = rss_data["itunes_duration"].split(":")
             if len(runtime) == 1:  # seconds
                 self.runtime += int(runtime[0])

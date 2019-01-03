@@ -28,3 +28,7 @@ class UnknownAuthorException(AudioBookerException):
 
 class ParseErrorException(AudioBookerException):
     pass
+
+
+class UnknownRuntimeError(AudioBookerException):
+    pass

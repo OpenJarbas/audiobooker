@@ -3,7 +3,7 @@ import subprocess
 import requests
 from bs4 import BeautifulSoup
 from audiobooker.exceptions import UnknownAuthorIdException, \
-    UnknownBookIdException, \
+    UnknownBookIdException, UnknownRuntimeError, \
     UnknownGenreIdException, UnknownAuthorException, UnknownBookException, \
     UnknownGenreException, ParseErrorException
 
@@ -156,6 +156,9 @@ class AudioBook(object):
         if from_data:
             self.from_json(from_data)
         self.raw = from_data or {}
+
+    def calc_runtime(self, data=None):
+        raise UnknownRuntimeError
 
     def parse_page(self):
         raise ParseErrorException
