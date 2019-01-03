@@ -4,32 +4,6 @@ from audiobooker.scrappers import AudioBook, BookAuthor, BookGenre, \
     AudioBookSource
 
 
-class LibrivoxGenre(BookGenre):
-    """
-    """
-
-    def __repr__(self):
-        """
-
-        Returns:
-
-        """
-        return "LibrivoxGenre(" + str(self) + ", " + self.genre_id + ")"
-
-
-class LibrivoxAuthor(BookAuthor):
-    """
-    """
-
-    def __repr__(self):
-        """
-
-        Returns:
-
-        """
-        return "LibrivoxAuthor(" + str(self) + ", " + self.author_id + ")"
-
-
 class LibrivoxAudioBook(AudioBook):
     """
     """
@@ -99,7 +73,7 @@ class LibrivoxAudioBook(AudioBook):
         Returns:
 
         """
-        return [LibrivoxAuthor(json_data=a) for a in self._authors]
+        return [BookAuthor(json_data=a) for a in self._authors]
 
     @property
     def genres(self):
@@ -108,7 +82,7 @@ class LibrivoxAudioBook(AudioBook):
         Returns:
 
         """
-        return [LibrivoxGenre(json_data=a) for a in self._genres]
+        return [BookGenre(json_data=a) for a in self._genres]
 
     def from_json(self, json_data):
         """
@@ -194,7 +168,7 @@ class Librivox(AudioBookSource):
         """
         url = Librivox.librivox_author_url % ("id=" + str(author_id),)
         json_data = requests.get(url).json()["authors"]
-        return LibrivoxAuthor(json_data=json_data[0])
+        return BookAuthor(json_data=json_data[0])
 
     @staticmethod
     def search_audiobooks(since=None, author=None, title=None, genre=None):
