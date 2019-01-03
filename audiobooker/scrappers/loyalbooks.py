@@ -78,7 +78,9 @@ class LoyalBooksAudioBook(AudioBook):
             for a in genres_urls:
                 url = self.base_url + a["href"]
                 genre = a.text.strip()
-                genres.append(BookGenre(name=genre, url=url))
+                genre_id = LoyalBooks.get_genre_id(genre)
+                genres.append(BookGenre(name=genre, url=url,
+                                        genre_id=genre_id))
 
         return {"description": description, "rating": rating, "genres": genres,
                 "authors": authors}
@@ -254,8 +256,15 @@ class LoyalBooks(AudioBookSource):
             genre = genres[genre_id]
         return BookGenre(genre_id=genre_id, name=genre)
 
-    def genre_id(self, genre):
-        return str(self.genres.index(genre))
+    @staticmethod
+    def get_genre_id(genre):
+        if LoyalBooks._genres is not None:
+            return str(LoyalBooks._genres.index(genre))
+        genres = []
+        for genre in LoyalBooks.scrap_genres():
+            genres.append(genre)
+        genres = sorted(genres)
+        return str(genres.index(genre))
 
     @property
     def genre_pages(self):
@@ -396,7 +405,7 @@ class LoyalBooks(AudioBookSource):
                 yield LoyalBooksAudioBook(title=name.strip(), url=url,
                                           img=img or "", rating=rating,
                                           genres=[BookGenre(name=genre,
-                                                            genre_id=self.genre_id(
+                                                            genre_id=self.get_genre_id(
                                                                 genre))],
                                           authors=[BookAuthor(
                                               first_name=first_name,
