@@ -105,7 +105,8 @@ class AudioBook(object):
     """
 
     def __init__(self, title="", authors=None, description="", genres=None,
-                 book_id="", runtime=0, language='english', json_data=None):
+                 book_id="", runtime=0, url="", language='english',
+                 json_data=None):
         """
 
         Args:
@@ -118,7 +119,7 @@ class AudioBook(object):
             language:
             json_data:
         """
-
+        self.url = url
         self.title = title
         self._authors = authors or []
         self._description = description
@@ -221,6 +222,7 @@ class AudioBook(object):
         if not isinstance(json_data, dict):
             raise TypeError
         json_data = json_data or {}
+        self.url = json_data.get("url", self.url)
         self.title = json_data.get("title", self.title)
         self._authors = json_data.get("authors", self._authors)
         self._description = json_data.get("description", self._description)
