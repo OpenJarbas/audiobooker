@@ -28,6 +28,6 @@ Leave a suggestion!
     print(book.description)
     print(book.authors)
     print(book.librivox_url)
-    print(book.get_streams())
+    print(book.streams)
     print(book.rss_data)
     book.play()

@@ -81,7 +81,7 @@ class LibrivoxAudioBook(object):
         return feedparser.parse(self.rss_url)
 
     @property
-    def streams(self):
+    def streamer(self):
         for stream in self.rss_data["entries"]:
             try:
                 yield stream['media_content'][0]["url"]
@@ -89,8 +89,9 @@ class LibrivoxAudioBook(object):
                 print(e)
                 continue
 
-    def get_streams(self):
-        return [s for s in self.streams]
+    @property
+    def streams(self):
+        return [s for s in self.streamer]
 
     def play_sox(self):
         self.play("play %1")
@@ -102,7 +103,7 @@ class LibrivoxAudioBook(object):
         self.play("cvlc %1 --play-and-exit")
 
     def play(self, cmd="cvlc %1 --play-and-exit"):
-        for stream_url in self.streams:
+        for stream_url in self.streamer:
             if isinstance(cmd, str):
                 cmd = cmd.replace("%1", stream_url)
             elif isinstance(cmd, list):
@@ -212,6 +213,6 @@ if __name__ == "__main__":
     pprint(book.description)
     pprint(book.authors)
     pprint(book.librivox_url)
-    pprint(book.get_streams())
+    pprint(book.streams)
     pprint(book.rss_data)
     book.play()

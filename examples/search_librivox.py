@@ -1,4 +1,5 @@
 from pprint import pprint
+from audiobooker.scrappers.librivox import Librivox
 
 author = Librivox.get_author("3534")
 pprint(author.last_name)
@@ -13,6 +14,6 @@ pprint(book.title)
 pprint(book.description)
 pprint(book.authors)
 pprint(book.librivox_url)
-pprint(book.get_streams())
+pprint(book.streams)
 pprint(book.rss_data)
 book.play()
