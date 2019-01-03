@@ -2,6 +2,8 @@ import json
 import subprocess
 import requests
 from bs4 import BeautifulSoup
+from audiobooker.exceptions import UnknownAuthorId, UnknownBookId, \
+    UnknownGenreId
 
 
 class BookGenre(object):
@@ -107,7 +109,7 @@ class AudioBook(object):
     """
 
     def __init__(self, title="", authors=None, description="", genres=None,
-                 book_id="", runtime=0, url="", language='english',
+                 book_id="", runtime=0, url="", img="", language='english',
                  json_data=None):
         """
 
@@ -121,6 +123,8 @@ class AudioBook(object):
             language:
             json_data:
         """
+
+        self.img = img
         self.url = url
         self.title = title
         self._authors = authors or []
@@ -213,6 +217,20 @@ class AudioBook(object):
         """
         return [BookGenre(json_data=a) for a in self._genres]
 
+    @property
+    def as_json(self):
+        bucket = self.raw
+        bucket["url"] = self.url
+        bucket["img"] = self.img
+        bucket["title"] = self.title
+        bucket["authors"] = self._authors
+        bucket["description"] = self._description
+        bucket["genres"] = self._genres
+        bucket["id"] = self.book_id
+        bucket["runtime"] = self.runtime
+        bucket["language"] = self.lang
+        return bucket
+
     def from_json(self, json_data):
         """
 
@@ -225,13 +243,18 @@ class AudioBook(object):
             raise TypeError
         json_data = json_data or {}
         self.url = json_data.get("url", self.url)
-        self.title = json_data.get("title", self.title)
+        self.img = json_data.get("img",
+                                 json_data.get("pic",
+                                               json_data.get("image",
+                                                             self.img)))
+        self.title = json_data.get("title", json_data.get("name", self.title))
         self._authors = json_data.get("authors", self._authors)
         self._description = json_data.get("description", self._description)
         self._genres = json_data.get("genres", self._genres)
         self.book_id = json_data.get("id", self.book_id)
-        self.runtime = json_data.get("totaltimesecs", self.runtime)
-        self.lang = json_data.get('language', self.lang).lower()
+        self.runtime = json_data.get("runtime", self.runtime)
+        self.lang = json_data.get('language',
+                                  json_data.get('lang', self.lang)).lower()
         self.raw = json_data
 
     def __str__(self):
@@ -293,6 +316,19 @@ class AudioBookSource(object):
         return []
 
     @staticmethod
+    def get_genre(genre_id):
+        """
+
+        Args:
+            genre_id:
+
+        Returns:
+            BookGenre
+
+        """
+        raise UnknownGenreId
+
+    @staticmethod
     def get_audiobook(book_id):
         """
 
@@ -303,7 +339,7 @@ class AudioBookSource(object):
             AudioBook
 
         """
-        return None
+        raise UnknownBookId
 
     @staticmethod
     def get_author(author_id):
@@ -313,9 +349,9 @@ class AudioBookSource(object):
             author_id:
 
         Returns:
-
+            BookAuthor
         """
-        return None
+        raise UnknownAuthorId
 
     @staticmethod
     def search_audiobooks(since=None, author=None, title=None, genre=None):
