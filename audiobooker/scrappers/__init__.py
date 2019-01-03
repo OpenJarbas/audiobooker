@@ -1,5 +1,7 @@
 import json
 import subprocess
+import requests
+from bs4 import BeautifulSoup
 
 
 class BookGenre(object):
@@ -252,6 +254,17 @@ class AudioBook(object):
 class AudioBookSource(object):
     """
     """
+
+    @staticmethod
+    def _get_html(url):
+        try:
+            return requests.get(url).text
+        except Exception as e:
+            return requests.get(url, verify=False).text
+
+    @staticmethod
+    def _get_soup(html):
+        return BeautifulSoup(html, "html.parser")
 
     @staticmethod
     def scrap_all_audiobooks(limit=2000, offset=0):
