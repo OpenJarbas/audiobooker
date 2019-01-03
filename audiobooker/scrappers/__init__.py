@@ -322,6 +322,7 @@ class AudioBookSource(object):
     popular_url = ""
     genres_url = ""
     authors_url = ""
+    search_url = ""
 
     @property
     def genres(self):

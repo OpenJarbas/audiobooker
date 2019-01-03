@@ -36,6 +36,7 @@ class LoyalBooksAudioBook(AudioBook):
         self.from_page()
 
     def parse_page(self):
+        title = self.soup.find("span", {"itemprop": "name"}).text
         description = self.soup.find("font",
                                      {"class": "book-description"}).text
         if self.soup.find(id="star1") is not None:
@@ -82,8 +83,11 @@ class LoyalBooksAudioBook(AudioBook):
                 genres.append(BookGenre(name=genre, url=url,
                                         genre_id=genre_id))
 
+        img = self.soup.find("img", {"itemprop": "image", "class": "cover"})
+        if img:
+            img = self.base_url + img["src"]
         return {"description": description, "rating": rating, "genres": genres,
-                "authors": authors}
+                "authors": authors, "title": title, "img": img}
 
     @property
     def rss_data(self):
@@ -178,8 +182,12 @@ class LoyalBooksAudioBook(AudioBook):
         data = self.parse_page()
         if self.rating < 1:
             self.rating = data["rating"]
+        if not self.title:
+            self.title = data["title"]
         if not self._description:
             self._description = data["description"]
+
+        self.img = data.get("img", self.img)
         for genre in data["genres"]:
             if genre.as_json not in self._genres:
                 self._genres.append(genre.as_json)
@@ -216,6 +224,7 @@ class LoyalBooks(AudioBookSource):
     base_url = "http://www.loyalbooks.com"
     popular_url = "http://www.loyalbooks.com"
     genres_url = "http://www.loyalbooks.com/genre-menu"
+    search_url = "http://www.loyalbooks.com/search?q=%s"
     _genres = None
     _genre_pages = None
 
@@ -459,6 +468,67 @@ class LoyalBooks(AudioBookSource):
                 yield b
 
     @staticmethod
+    def search_audiobooks(since=None, author=None, title=None, genre=None):
+        """
+
+        Args:
+            since: a UNIX timestamp; returns all projects cataloged since that time
+            author: all records by that author last name
+            title: all matching titles
+            genre: all projects of the matching genre
+
+        Returns:
+            list : list of AudioBook objects
+        """
+        query = ""
+        if title:
+            query += title + " "
+
+        if genre:
+            query += genre + " "
+
+        if author:
+            query += author + " "
+
+        ## TODO find out how to get callback and nocache values
+        """
+        import requests
+        url = LoyalBooks.search_url % query
+        cx = "003017802411926626169:x3dul6qfjls"
+        session = requests.Session()
+        session.get(url)
+        cx_token = session.get(
+            "https://cse.google.com/cse.js?cx=003017802411926626169"
+            ":x3dul6qfjls").text.split('"cse_token": "')[1].split('",')[0]
+        params = {"rsz": "filtered_cse",
+                  "num": "10",
+                  "hl": "en",
+                  "source": "gcsc",
+                  "gss": ".com",
+                  "cx": cx,
+                  "q": query,
+                  "safe": "off",
+                  "cse_tok": cx_token,
+                  "sort": ""#,
+                  #"callback": "google.search.cse.api15358",
+                  #"nocache": "1546515546857"
+                  }
+        print(session.get("https://cse.google.com/cse/element/v1",
+                          data=params))
+        """
+        from audiobooker.google_search import GoogleSearch
+        query += " site:" + LoyalBooks.base_url
+        for response in GoogleSearch().search(query, 15):
+            for result in response.results:
+                if "www.loyalbooks.com/book/" not in result.url:
+                    continue
+                if result.url.endswith("/feed"):
+                    continue
+                yield LoyalBooksAudioBook(url=result.url)
+
+        return []
+
+    @staticmethod
     def get_audiobook(book_id):
         """
 
@@ -470,7 +540,7 @@ class LoyalBooks(AudioBookSource):
 
         """
         url = 'http://www.loyalbooks.com/book/' + book_id
-        book = LoyalBooksAudioBook(url=url, title=book_id.replace("-", " "))
+        book = LoyalBooksAudioBook(url=url)
         return book
 
 
@@ -479,6 +549,7 @@ if __name__ == "__main__":
 
     # book = LoyalBooks.get_audiobook('Slave-Is-A-Slave-by-H-Beam-Piper')
     # pprint(book.parse_page())
+
     # for a in book.authors:
     #    print(a.as_json)
     # book.play()
@@ -486,8 +557,11 @@ if __name__ == "__main__":
     # print(LoyalBooks.get_genre(40))
 
     scraper = LoyalBooks()
-    for book in scraper.scrap_popular():
+    for book in scraper.search_audiobooks(author="Lovecraft"):
         pprint(book.as_json)
+
+    # for book in scraper.scrap_popular():
+    #    pprint(book.as_json)
 
     # for book in scraper.scrap_by_genre("Science fiction"):
     #    pprint(book.as_json)
