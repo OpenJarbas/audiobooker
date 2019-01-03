@@ -12,6 +12,8 @@ Leave a suggestion!
     
 ## Usage
 
+search libribox
+
     from audiobooker.librivox import Librivox
     
     author = Librivox.get_author("3534")
@@ -23,7 +25,9 @@ Leave a suggestion!
     books = Librivox.get_all_audiobooks(limit=50)    
     
     book = Librivox.search_audiobooks(title="Art of War")[0]
-    
+
+interact with a book object
+  
     print(book.title)
     print(book.description)
     print(book.authors)
@@ -31,6 +35,17 @@ Leave a suggestion!
     print(book.streams)
     print(book.rss_data)
     book.play()
+
+search loyalbooks
+
+    from audiobooker.scrappers.loyalbooks import LoyalBooks
+
+    book = LoyalBooks.get_audiobook('Short-Science-Fiction-Collection-1')
+    book.play()
+    
+    scraper = LoyalBooks()
+    for book in scraper.scrap_by_genre("Science fiction"):
+        print(book.as_json)
 
 
 ## TODO
