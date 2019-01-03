@@ -10,7 +10,7 @@ class BookGenre(object):
     """
     """
 
-    def __init__(self, name="", genre_id="", from_data=None):
+    def __init__(self, name="", genre_id="", url="", from_data=None):
         """
 
         Args:
@@ -20,12 +20,13 @@ class BookGenre(object):
         """
         self.name = name
         self.genre_id = genre_id
+        self.url = url
         if from_data:
             self.from_json(from_data)
 
     @property
     def as_json(self):
-        return {"name": self.name, "id": self.genre_id}
+        return {"name": self.name, "id": self.genre_id, "url": self.url}
 
     def from_json(self, json_data):
         """
@@ -41,6 +42,7 @@ class BookGenre(object):
             raise TypeError
         self.name = json_data.get("name", self.name)
         self.genre_id = json_data.get("id", self.genre_id)
+        self.url = json_data.get("url", self.url)
 
     def __str__(self):
         """
@@ -63,7 +65,7 @@ class BookAuthor(object):
     """
     """
 
-    def __init__(self, first_name="", last_name="", author_id="",
+    def __init__(self, first_name="", last_name="", author_id="", url="",
                  from_data=None):
         """
 
@@ -76,6 +78,7 @@ class BookAuthor(object):
         self.first_name = first_name
         self.last_name = last_name
         self.author_id = author_id
+        self.url = url
         if from_data:
             self.from_json(from_data)
 
@@ -95,11 +98,12 @@ class BookAuthor(object):
         self.first_name = json_data.get("first_name", self.first_name)
         self.last_name = json_data.get("last_name", self.last_name)
         self.author_id = json_data.get("id", self.author_id)
+        self.url = json_data.get("url", self.url)
 
     @property
     def as_json(self):
         return {"first_name": self.first_name, "last_name": self.last_name,
-                "id": self.author_id}
+                "id": self.author_id, "url": self.url}
 
     def __str__(self):
         """
