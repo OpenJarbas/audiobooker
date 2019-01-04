@@ -26,7 +26,7 @@ class AudioBookSource(object):
                            daemon=True).start()
             else:
                 self._cache = self.get_all_audiobooks()
-        if books:
+        elif books:
             self._cache += books
 
     @property
