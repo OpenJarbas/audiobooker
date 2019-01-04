@@ -229,6 +229,8 @@ class LoyalBooks(AudioBookSource):
     _genres = None
     _genre_pages = None
 
+    # TODO cache
+
     @staticmethod
     def scrap_genres():
         soup = LoyalBooks._get_soup(
@@ -545,6 +547,21 @@ class LoyalBooks(AudioBookSource):
         book = LoyalBooksAudioBook(url=url)
         return book
 
+    def scrap_all_audiobooks(self, limit=-1, offset=0):
+        """
+
+        Generator, yields AudioBook objects
+
+        Args:
+            limit:
+            offset:
+        """
+        for genre in self.genres:
+            for book in self.scrap_by_genre(genre, limit, offset):
+                yield book
+
+    def get_all_audiobooks(self, limit=2000, offset=0):
+        return [b for b in self.scrap_all_audiobooks()]
 
 if __name__ == "__main__":
     from pprint import pprint
@@ -567,5 +584,7 @@ if __name__ == "__main__":
     for book in scraper.scrap_by_genre("Science fiction"):
         pprint(book.as_json)
 
+    for book in scraper.scrap_all_audiobooks():
+        pprint(book.as_json)
     pprint(scraper.scrap_genres())
     pprint(scraper.genres)
