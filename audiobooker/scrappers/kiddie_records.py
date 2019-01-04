@@ -417,8 +417,7 @@ class KiddieRecords(AudioBookSource):
 
         # second author matches
         if author:
-            choices = [b.authors for b in alll]
-            choices = [a.name for a in choices]
+            choices = [" ".join([str(a) for a in b.authors]) for b in alll]
             for res in process.extract(author, choices, limit=limit):
                 match, score = res
                 match = alll[choices.index(match)]
