@@ -2,9 +2,9 @@ from setuptools import setup
 
 setup(
     name='audiobooker',
-    version='0.2.2',
-    packages=['audiobooker', 'audiobooker.scrappers'],
-    install_requires=["requests", "bs4", "feedparser"],
+    version='0.2.3',
+    packages=['audiobooker', 'audiobooker.scrappers', 'audiobooker.utils'],
+    install_requires=["requests", "bs4", "feedparser", "fuzzywuzzy"],
     url='https://github.com/JarbasAl/audiobooker',
     license='MIT',
     author='jarbasAI',

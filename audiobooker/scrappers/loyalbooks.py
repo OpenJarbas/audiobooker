@@ -478,8 +478,8 @@ class LoyalBooks(AudioBookSource):
             title: all matching titles
             genre: all projects of the matching genre
 
-        Returns:
-            list : list of AudioBook objects
+        Yields:
+            AudioBook objects
         """
         query = ""
         if title:

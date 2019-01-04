@@ -50,13 +50,25 @@ search loyalbooks
     for book in LoyalBooks.search_audiobooks(author="Lovecraft"):
         print(book.as_json)
 
+search kid stories
+
+    from audiobooker.scrappers.kiddie_records import KiddieRecords
+    
+    for b in KiddieRecords.search_audiobooks(genre="song"):
+        print(b.as_json)
+        b.play()
+    
+    for b in KiddieRecords.search_audiobooks(title="Snow White and the Seven Dwarfs"):
+        print(b.as_json)
+
+    for b in KiddieRecords.scrap_all_audiobooks():
+        pprint(b.as_json)
 
 ## TODO
 
 future scrappers
 
 * http://hppodcraft.com
-* http://www.kiddierecords.com/
 * http://freeclassicaudiobooks.com/
 * https://www.gutenberg.org/browse/categories/1
 * http://www.openculture.com/freeaudiobooks

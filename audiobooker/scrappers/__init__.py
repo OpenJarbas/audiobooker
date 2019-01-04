@@ -164,7 +164,7 @@ class AudioBook(object):
         raise ParseErrorException
 
     def from_page(self):
-        data = self.parse_page()
+        self.raw = self.parse_page()
 
     @property
     def html(self):
