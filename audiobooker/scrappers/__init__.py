@@ -6,6 +6,7 @@ from audiobooker.exceptions import UnknownAuthorIdException, \
     UnknownBookIdException, ScrappingError, UnknownGenreIdException, \
     UnknownAuthorException, UnknownBookException, UnknownGenreException
 from audiobooker import AudioBook, BookAuthor
+from audiobooker.utils.proxies import random_user_agent
 
 
 class AudioBookSource(object):
@@ -54,10 +55,12 @@ class AudioBookSource(object):
 
     @staticmethod
     def _get_html(url):
+        user_agent = random_user_agent()
         try:
-            return requests.get(url).text
+            return requests.get(url, headers={'User-Agent': user_agent}).text
         except Exception as e:
-            return requests.get(url, verify=False).text
+            return requests.get(url, verify=False,
+                                headers={'User-Agent': user_agent}).text
 
     @staticmethod
     def _get_soup(html):
@@ -117,7 +120,6 @@ class AudioBookSource(object):
         self._cache = [book for book in self.scrap_all_audiobooks(limit,
                                                                   offset)]
         return self._cache
-
 
     @staticmethod
     def get_genre_id(genre):
