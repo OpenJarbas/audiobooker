@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from threading import Thread
-
+from fuzzywuzzy import process
 from audiobooker.exceptions import UnknownAuthorIdException, \
     UnknownBookIdException, ScrappingError, UnknownGenreIdException, \
     UnknownAuthorException, UnknownBookException, UnknownGenreException
@@ -16,13 +16,18 @@ class AudioBookSource(object):
     search_url = ""
     _cache = None
 
-    def populate_cache(self, threaded=False):
+    def populate_cache(self, books=None, threaded=False):
         if self._cache is None:
+            if books:
+                self._cache = books
+                return
             if threaded:
                 t = Thread(target=self.get_all_audiobooks,
                            daemon=True).start()
             else:
                 self._cache = self.get_all_audiobooks()
+        if books:
+            self._cache += books
 
     @property
     def genres(self):
@@ -95,8 +100,7 @@ class AudioBookSource(object):
         """
         raise ScrappingError
 
-    @staticmethod
-    def get_all_audiobooks(limit=2000, offset=0):
+    def get_all_audiobooks(self, limit=2000, offset=0):
         """
 
         Args:
@@ -107,8 +111,9 @@ class AudioBookSource(object):
             list : list of LibrivoxAudioBook objects
 
         """
-        if AudioBookSource._cache is not None:
-            return AudioBookSource._cache
+        if self._cache is not None:
+            return self._cache
+        # Override me
         raise ScrappingError
 
     @staticmethod
@@ -187,9 +192,8 @@ class AudioBookSource(object):
         """
         raise UnknownAuthorException
 
-    @staticmethod
-    def search_audiobooks(since=None, author=None, title=None, genre=None,
-                          limit=25):
+    def search_audiobooks(self, since=None, author=None, title=None,
+                          genre=None, limit=25):
         """
 
         Args:
@@ -202,10 +206,26 @@ class AudioBookSource(object):
         Returns:
             list : list of AudioBook objects
         """
-        raise ScrappingError
+        # priority for title matches
+        alll = self.get_all_audiobooks()
+        if title:
+            for res in process.extract(title, alll, limit=limit):
+                match, score = res
+                yield match
+                alll.remove(match)
+
+        # second author matches
+        if author:
+            choices = [" ".join([str(a) for a in b.authors]) for b in alll]
+            for res in process.extract(author, choices, limit=limit):
+                match, score = res
+                match = alll[choices.index(match)]
+                yield match
+                alll.remove(match)
 
 
 if __name__ == "__main__":
+    # read from csv or something
     streams = ['Aldous Huxley, Brave New World, '
                'https://1fizorq.oloadcdn.net/dl/l/lhcTuuSF1qQv_hV0/Q3JE4LxtblQ/16+-+Brave+New+World+-+Aldous+Huxley+-+1932.mp3?mime=true',
                'Arthur C. Clarke, Rendezvous with Rama, '
@@ -227,21 +247,22 @@ if __name__ == "__main__":
 
     from pprint import pprint
 
+    book_lib = AudioBookSource()
+
     for book in streams:
         author, title, stream = book.split(",")
-
-        names = author.split(" ")
-        last_name = " ".join(names[1:])
-        first_name = names[0]
-        author = {"last_name": last_name}
 
         audio_book = AudioBook(description="awesome book",
                                from_data={"title": title,
                                           "authors": [author],
                                           "streams": [stream]})
-        pprint(audio_book.as_json)
 
-        audio_book.play()
+        book_lib.populate_cache([audio_book])
 
         author = BookAuthor(from_data=author)
-        pprint(author.as_json)
+
+    for book in book_lib.search_audiobooks(title="androids", limit=1):
+        print(book.title, book.authors)
+
+    for book in book_lib.search_audiobooks(author="Heinlein", limit=3):
+        pprint(book.as_json)
