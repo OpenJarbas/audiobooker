@@ -249,7 +249,16 @@ class AudioBook(object):
         Returns:
 
         """
-        return [BookAuthor(from_data=a) for a in self._authors]
+        authors = []
+        for a in self._authors:
+            if isinstance(a, str):
+                try:
+                    a = json.loads(a)
+                except Exception as e:
+                    a = {"last_name": a}
+            if isinstance(a, dict):
+                authors += [a]
+        return [BookAuthor(from_data=a) for a in authors]
 
     @property
     def genres(self):
@@ -486,7 +495,8 @@ class AudioBookSource(object):
         raise UnknownAuthorException
 
     @staticmethod
-    def search_audiobooks(since=None, author=None, title=None, genre=None):
+    def search_audiobooks(since=None, author=None, title=None, genre=None,
+                          limit=25):
         """
 
         Args:
@@ -494,6 +504,7 @@ class AudioBookSource(object):
             author: all records by that author last name
             title: all matching titles
             genre: all projects of the matching genre
+            limit: max entries to return (int)
 
         Returns:
             list : list of AudioBook objects
