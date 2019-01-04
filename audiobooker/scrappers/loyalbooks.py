@@ -230,16 +230,6 @@ class LoyalBooks(AudioBookSource):
     _genres = None
     _genre_pages = None
 
-    _cache = None
-
-    def populate_cache(self, threaded=False):
-        if LoyalBooks._cache is None:
-            if threaded:
-                t = Thread(target=self.get_all_audiobooks,
-                           daemon=True).start()
-            else:
-                LoyalBooks._cache = self.get_all_audiobooks()
-
     @staticmethod
     def scrap_genres():
         soup = LoyalBooks._get_soup(
@@ -568,12 +558,6 @@ class LoyalBooks(AudioBookSource):
         for genre in self.genres:
             for book in self.scrap_by_genre(genre, limit, offset):
                 yield book
-
-    def get_all_audiobooks(self, limit=2000, offset=0):
-        if LoyalBooks._cache is not None:
-            return LoyalBooks._cache
-        LoyalBooks._cache = [b for b in self.scrap_all_audiobooks()]
-        return LoyalBooks._cache
 
 
 if __name__ == "__main__":

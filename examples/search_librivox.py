@@ -7,9 +7,10 @@ pprint(author.last_name)
 book = Librivox.get_audiobook("127")
 pprint(book.title)
 
-pprint(Librivox.get_all_audiobooks())
+scraper = Librivox()
+pprint(scraper.get_all_audiobooks())
 
-book = Librivox.search_audiobooks(title="Art of War")[0]
+book = scraper.search_audiobooks(title="Art of War")[0]
 pprint(book.title)
 pprint(book.description)
 pprint(book.authors)

@@ -1,5 +1,7 @@
 import json
 import subprocess
+import requests
+from bs4 import BeautifulSoup
 
 from audiobooker.exceptions import UnknownAuthorIdException, \
     UnknownBookIdException, UnknownDurationError, ScrappingError, \

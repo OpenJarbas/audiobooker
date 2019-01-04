@@ -111,10 +111,13 @@ class AudioBookSource(object):
             list : list of LibrivoxAudioBook objects
 
         """
+
         if self._cache is not None:
             return self._cache
-        # Override me
-        raise ScrappingError
+        self._cache = [book for book in self.scrap_all_audiobooks(limit,
+                                                                  offset)]
+        return self._cache
+
 
     @staticmethod
     def get_genre_id(genre):

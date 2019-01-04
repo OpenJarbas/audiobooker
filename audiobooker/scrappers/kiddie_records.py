@@ -6,7 +6,6 @@ from audiobooker import AudioBook
 from audiobooker.scrappers import AudioBookSource
 
 from fuzzywuzzy import process
-from threading import Thread
 
 
 class KiddieAudioBook(AudioBook):
@@ -105,16 +104,6 @@ class KiddieRecords(AudioBookSource):
             "http://www.kiddierecords.com/albums/index_2.htm",
             "http://www.kiddierecords.com/albums/index_3.htm",
             "http://www.kiddierecords.com/xmas/index.htm"]
-    _cache = None
-
-    @staticmethod
-    def populate_cache(threaded=False):
-        if KiddieRecords._cache is None:
-            if threaded:
-                t = Thread(target=KiddieRecords.get_all_audiobooks,
-                           daemon=True).start()
-            else:
-                KiddieRecords._cache = KiddieRecords.get_all_audiobooks()
 
     @staticmethod
     def scrap_all_audiobooks(limit=-1, offset=0):
@@ -329,24 +318,6 @@ class KiddieRecords(AudioBookSource):
         return streams, pics, buckets
 
     @staticmethod
-    def get_all_audiobooks(limit=2000, offset=0):
-        """
-
-        Args:
-            limit:
-            offset:
-
-        Returns:
-            list : list of KiddieRecordsAudioBook objects
-
-        """
-        if KiddieRecords._cache is not None:
-            return KiddieRecords._cache
-        KiddieRecords._cache = [b for b in
-                                KiddieRecords.scrap_all_audiobooks()]
-        return KiddieRecords._cache
-
-    @staticmethod
     def get_audiobook(book_id):
         """
 
@@ -402,9 +373,8 @@ class KiddieRecords(AudioBookSource):
         """
         raise UnknownAuthorException
 
-    @staticmethod
-    def search_audiobooks(since=None, author=None, title=None, genre=None,
-                          limit=25):
+    def search_audiobooks(self, since=None, author=None, title=None,
+                          genre=None, limit=25):
         """
 
         Args:
@@ -417,7 +387,7 @@ class KiddieRecords(AudioBookSource):
             AudioBook objects
         """
         # priority for title matches
-        alll = KiddieRecords.get_all_audiobooks(cache=True)
+        alll = self.get_all_audiobooks()
         if title:
             for res in process.extract(title, alll, limit=limit):
                 match, score = res
@@ -445,7 +415,8 @@ class KiddieRecords(AudioBookSource):
 if __name__ == "__main__":
     from pprint import pprint
 
-    for b in KiddieRecords.search_audiobooks(
+    scraper = KiddieRecords()
+    for b in scraper.search_audiobooks(
             title="Snow White and the Seven Dwarfs"):
         print(b.as_json)
 
