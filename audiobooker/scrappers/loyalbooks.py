@@ -469,7 +469,8 @@ class LoyalBooks(AudioBookSource):
                 yield b
 
     @staticmethod
-    def search_audiobooks(since=None, author=None, title=None, genre=None):
+    def search_audiobooks(since=None, author=None, title=None, genre=None,
+                          limit=25):
         """
 
         Args:
@@ -520,7 +521,7 @@ class LoyalBooks(AudioBookSource):
 
         query += " site:" + LoyalBooks.base_url
 
-        for result in GoogleSearch.search(query, 15):
+        for result in GoogleSearch.search(query, limit):
             if "www.loyalbooks.com/book/" not in result.url:
                 continue
             if result.url.endswith("/feed"):

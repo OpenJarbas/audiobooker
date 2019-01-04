@@ -172,7 +172,8 @@ class Librivox(AudioBookSource):
         return BookAuthor(from_data=json_data[0])
 
     @staticmethod
-    def search_audiobooks(since=None, author=None, title=None, genre=None):
+    def search_audiobooks(since=None, author=None, title=None, genre=None,
+                          limit=25):
         """
 
         Args:
@@ -185,6 +186,9 @@ class Librivox(AudioBookSource):
             list : list of LibrivoxAudioBook objects
         """
         searchterm = []
+        if limit:
+            # TODO validate
+            searchterm.append("limit=" + str(limit))
         if since:
             # TODO validate
             searchterm.append("since=" + since)

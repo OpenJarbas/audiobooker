@@ -394,7 +394,8 @@ class KiddieRecords(AudioBookSource):
         raise UnknownAuthorException
 
     @staticmethod
-    def search_audiobooks(since=None, author=None, title=None, genre=None):
+    def search_audiobooks(since=None, author=None, title=None, genre=None,
+                          limit=25):
         """
 
         Args:
@@ -409,22 +410,28 @@ class KiddieRecords(AudioBookSource):
         # priority for title matches
         alll = KiddieRecords.get_all_audiobooks(cache=True)
         if title:
-            for res in process.extract(title, alll, limit=15):
+            for res in process.extract(title, alll, limit=limit):
                 match, score = res
                 yield match
+                alll.remove(match)
 
         # second author matches
         if author:
             choices = [b.authors for b in alll]
-            for res in process.extract(author, choices, limit=10):
+            choices = [a.name for a in choices]
+            for res in process.extract(author, choices, limit=limit):
                 match, score = res
-                yield alll[choices.index(match)]
+                match = alll[choices.index(match)]
+                yield match
+                alll.remove(match)
 
         # TODO genre, somehow need to catalog songs vs stories etc.
+        # comparing same as title for now
         if genre:
-            for res in process.extract(genre, alll, limit=10):
+            for res in process.extract(genre, alll, limit=limit):
                 match, score = res
                 yield match
+                alll.remove(match)
 
 
 if __name__ == "__main__":
