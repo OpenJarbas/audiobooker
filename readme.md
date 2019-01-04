@@ -2,9 +2,9 @@
 
 AudioBook scrapper and player
 
-Currently supports Librivox, will be expanded with more sources over time
-
-Leave a suggestion!
+Currently supports [Librivox](https://librivox.org/), [LoyalBooks](http://www.loyalbooks.com), [KiddieRecords](http://www.kiddierecords.com/) and [HPPodcraft](http://hppodcraft.com/full-story-readings/)
+ 
+Will be expanded with more sources over time, suggestions and Pull Requests welcome!
 
 ## Install
 
@@ -64,17 +64,3 @@ search kid stories
     for b in KiddieRecords.scrap_all_audiobooks():
         pprint(b.as_json)
 
-## TODO
-
-future scrappers
-
-* http://freeclassicaudiobooks.com/
-* https://www.gutenberg.org/browse/categories/1
-* http://www.openculture.com/freeaudiobooks
-* https://www.storynory.com/
-* http://etc.usf.edu/lit2go/
-* https://www.learnoutloud.com/
-* https://archive.org/details/MindWebs_201410/001CarcinomaAngels-NormanSpinrad.wav
-* https://scribl.com
-* http://www.audioanarchy.org/
-* http://thoughtaudio.com/
