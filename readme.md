@@ -68,7 +68,6 @@ search kid stories
 
 future scrappers
 
-* http://hppodcraft.com
 * http://freeclassicaudiobooks.com/
 * https://www.gutenberg.org/browse/categories/1
 * http://www.openculture.com/freeaudiobooks
