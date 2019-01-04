@@ -197,17 +197,11 @@ class SearchResult(object):
 
 
 if __name__ == "__main__":
-    import sys
-
-    i = 1
-    query = " ".join(sys.argv[1:])
-    if len(query) == 0:
-        query = "vikings "
+    query = "lovecraft audio drama"
     count = 5
     google = GoogleSearch()
     print("Fetching first " + str(count) + " results for \"" + query + "\"...")
     for result in google.search(query, count):
-        print("RESULT #", result.num, " of ", result.total)
+        print("result #", result.num, " of ", result.total)
         print(result.url)
         print(result.title)
-        i += 1

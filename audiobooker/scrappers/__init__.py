@@ -1,329 +1,11 @@
-import json
-import subprocess
 import requests
 from bs4 import BeautifulSoup
+from threading import Thread
+
 from audiobooker.exceptions import UnknownAuthorIdException, \
-    UnknownBookIdException, UnknownDurationError, ScrappingError, \
-    UnknownGenreIdException, UnknownAuthorException, UnknownBookException, \
-    UnknownGenreException, ParseErrorException
-
-
-class BookGenre(object):
-    """
-    """
-
-    def __init__(self, name="", genre_id="", url="", from_data=None):
-        """
-
-        Args:
-            name:
-            genre_id:
-            from_data:
-        """
-        self.name = name
-        self.genre_id = genre_id
-        self.url = url
-        if from_data:
-            self.from_json(from_data)
-
-    @property
-    def as_json(self):
-        return {"name": self.name, "id": self.genre_id, "url": self.url}
-
-    def from_json(self, json_data):
-        """
-
-        Args:
-            json_data:
-        """
-        if isinstance(json_data, str):
-            json_data = json.loads(json_data)
-        if isinstance(json_data, BookGenre):
-            json_data = json_data.as_json
-        if not isinstance(json_data, dict):
-            raise TypeError
-        self.name = json_data.get("name", self.name)
-        self.genre_id = json_data.get("id", self.genre_id)
-        self.url = json_data.get("url", self.url)
-
-    def __str__(self):
-        """
-
-        Returns:
-
-        """
-        return self.name
-
-    def __repr__(self):
-        """
-
-        Returns:
-
-        """
-        return "BookGenre(" + str(self) + ", " + self.genre_id + ")"
-
-
-class BookAuthor(object):
-    """
-    """
-
-    def __init__(self, first_name="", last_name="", author_id="", url="",
-                 from_data=None):
-        """
-
-        Args:
-            first_name:
-            last_name:
-            author_id:
-            from_data:
-        """
-        self.first_name = first_name
-        self.last_name = last_name
-        self.author_id = author_id
-        self.url = url
-        if from_data:
-            self.from_json(from_data)
-
-    def from_json(self, json_data):
-        """
-
-        Args:
-            json_data:
-        """
-        if isinstance(json_data, str):
-            json_data = json.loads(json_data)
-        if isinstance(json_data, BookAuthor):
-            json_data = json_data.as_json
-        if not isinstance(json_data, dict):
-            print(json_data, type(json_data))
-            raise TypeError
-        self.first_name = json_data.get("first_name", self.first_name)
-        self.last_name = json_data.get("last_name", self.last_name)
-        self.author_id = json_data.get("id", self.author_id)
-        self.url = json_data.get("url", self.url)
-
-    @property
-    def as_json(self):
-        return {"first_name": self.first_name, "last_name": self.last_name,
-                "id": self.author_id, "url": self.url}
-
-    def __str__(self):
-        """
-
-        Returns:
-
-        """
-        return (self.first_name + " " + self.last_name).strip()
-
-    def __repr__(self):
-        """
-
-        Returns:
-
-        """
-        return "BookAuthor(" + str(self) + ", " + self.author_id + ")"
-
-
-class AudioBook(object):
-    """
-    """
-
-    def __init__(self, title="", authors=None, description="", genres=None,
-                 book_id="", runtime=0, url="", img="", language='english',
-                 from_data=None):
-        """
-
-        Args:
-            title:
-            authors:
-            description:
-            genres:
-            book_id:
-            runtime:
-            language:
-            from_data:
-        """
-
-        self.img = img
-        self.url = url
-        self.title = title
-        self._authors = authors or []
-        self._description = description
-        self._genres = genres or []
-        self.book_id = book_id
-        self.runtime = runtime
-        self.lang = language.lower()
-        if from_data:
-            self.from_json(from_data)
-        self.raw = from_data or {}
-
-    def calc_runtime(self, data=None):
-        raise UnknownDurationError
-
-    def parse_page(self):
-        raise ParseErrorException
-
-    def from_page(self):
-        self.raw = self.parse_page()
-
-    @property
-    def html(self):
-        try:
-            return requests.get(self.url).text
-        except Exception as e:
-            try:
-                return requests.get(self.url, verify=False).text
-            except:
-                return None
-
-    @property
-    def soup(self):
-        return BeautifulSoup(self.html, "html.parser")
-
-    @property
-    def description(self):
-        """
-
-        Returns:
-
-        """
-        return self._description.strip()
-
-    @property
-    def streamer(self):
-        """
-
-        """
-        return []
-
-    @property
-    def streams(self):
-        """
-
-        Returns:
-
-        """
-        return [s for s in self.streamer]
-
-    def play_sox(self):
-        """
-
-        """
-        self.play("play %1")
-
-    def play_mplayer(self):
-        """
-
-        """
-        self.play("mplayer %1")
-
-    def play_vlc(self):
-        """
-
-        """
-        self.play("cvlc %1 --play-and-exit")
-
-    def play(self, cmd="cvlc %1 --play-and-exit"):
-        """
-
-        Args:
-            cmd:
-        """
-        for stream_url in self.streamer:
-            print("playing", stream_url)
-            if isinstance(cmd, str):
-                cmd = cmd.split(" ")
-            if isinstance(cmd, list):
-                play_cmd = cmd
-                for idx, c in enumerate(cmd):
-                    if c == "%1":
-                        play_cmd[idx] = stream_url
-                subprocess.call(" ".join(play_cmd), shell=True)
-            else:
-                raise TypeError
-
-    @property
-    def authors(self):
-        """
-
-        Returns:
-
-        """
-        authors = []
-        for a in self._authors:
-            if isinstance(a, str):
-                try:
-                    a = json.loads(a)
-                except Exception as e:
-                    a = {"last_name": a}
-            if isinstance(a, dict):
-                authors += [a]
-        return [BookAuthor(from_data=a) for a in authors]
-
-    @property
-    def genres(self):
-        """
-
-        Returns:
-
-        """
-        return [BookGenre(from_data=a) for a in self._genres]
-
-    @property
-    def as_json(self):
-        bucket = self.raw
-        bucket["url"] = self.url
-        bucket["img"] = self.img
-        bucket["title"] = self.title
-        bucket["authors"] = self._authors
-        bucket["description"] = self._description
-        bucket["genres"] = self._genres
-        bucket["id"] = self.book_id
-        bucket["runtime"] = self.runtime
-        bucket["language"] = self.lang
-        return bucket
-
-    def from_json(self, json_data):
-        """
-
-        Args:
-            json_data:
-        """
-        if isinstance(json_data, str):
-            json_data = json.loads(json_data)
-        if not isinstance(json_data, dict):
-            raise TypeError
-        json_data = json_data or {}
-        self.url = json_data.get("url", self.url)
-        self.img = json_data.get("img",
-                                 json_data.get("pic",
-                                               json_data.get("image",
-                                                             self.img)))
-        self.title = json_data.get("title", json_data.get("name", self.title))
-        self._authors = json_data.get("authors", self._authors)
-        self._description = json_data.get("description", self._description)
-        self._genres = json_data.get("genres", self._genres)
-        self.book_id = json_data.get("id", self.book_id)
-        self.runtime = json_data.get("runtime", self.runtime)
-        self.lang = json_data.get('language',
-                                  json_data.get('lang', self.lang)).lower()
-        self.raw = json_data
-
-    def __str__(self):
-        """
-
-        Returns:
-
-        """
-        return self.title
-
-    def __repr__(self):
-        """
-
-        Returns:
-
-        """
-        return "AudioBook(" + str(self) + ", " + self.book_id + ")"
+    UnknownBookIdException, ScrappingError, UnknownGenreIdException, \
+    UnknownAuthorException, UnknownBookException, UnknownGenreException
+from audiobooker import AudioBook, BookAuthor
 
 
 class AudioBookSource(object):
@@ -332,6 +14,15 @@ class AudioBookSource(object):
     genres_url = ""
     authors_url = ""
     search_url = ""
+    _cache = None
+
+    def populate_cache(self, threaded=False):
+        if self._cache is None:
+            if threaded:
+                t = Thread(target=self.get_all_audiobooks,
+                           daemon=True).start()
+            else:
+                self._cache = self.get_all_audiobooks()
 
     @property
     def genres(self):
@@ -416,6 +107,8 @@ class AudioBookSource(object):
             list : list of LibrivoxAudioBook objects
 
         """
+        if AudioBookSource._cache is not None:
+            return AudioBookSource._cache
         raise ScrappingError
 
     @staticmethod
@@ -510,3 +203,45 @@ class AudioBookSource(object):
             list : list of AudioBook objects
         """
         raise ScrappingError
+
+
+if __name__ == "__main__":
+    streams = ['Aldous Huxley, Brave New World, '
+               'https://1fizorq.oloadcdn.net/dl/l/lhcTuuSF1qQv_hV0/Q3JE4LxtblQ/16+-+Brave+New+World+-+Aldous+Huxley+-+1932.mp3?mime=true',
+               'Arthur C. Clarke, Rendezvous with Rama, '
+               'https://1fizors.oloadcdn.net/dl/l/-3TKoZ6X1GdzknSE/bPk3Nk2bvCs/14+-+Rendezvous+With+Rama+-+Arthur+C+Clarke+-+1973.mp3?mime=true',
+               'Philip K. Dick, Do Androids Dream of Electric Sheep, '
+               'https://1fizoro.oloadcdn.net/dl/l/PvHcbH-InPYzh6Bq/Yhc2d-us-kA/12+-+Do+Androids+Dream+of+Electric+Sheep+-+Philip+K+Dick+-+1968.mp3?mime=true',
+               'George Orwell, Animal Farm, https://www.youtube.com/watch?v=4Ln-Bfg6Wk0',
+               'George Orwell, 1984, '
+               'https://1fizorp.oloadcdn.net/dl/l/C76B03TG8T9wi-2z/vBhqbIHW5iM/Nineteen+Eighty+Four+-+George+Orwell.mp3?mime=true',
+               'Arthur C. Clarke, 2001 A Space Odyssey, '
+               'https://1fizorm.oloadcdn.net/dl/l/5YLhBL8cXOiOVqDh/-3w7Z_VvYCU/8+-+2001%3B+A+Space+Odyssey+-+Arthur+C+Clarke+-+1968.mp3?mime=true',
+               'Arthur C. Clarke, Childhood’s End, '
+               'https://1fizors.oloadcdn.net/dl/l/FsqNl_M7s_s54OeE/q2HkT0EYx8w/18+-+Childhood%27s+End+-+Arthur+C+Clarke+-+1954.mp3?mime=true',
+               'Robert A. Heinlein, Starshio Troopers, '
+               'https://1fizorn.oloadcdn.net/dl/l/W6xGJG_Ig2l_O7s8/XXegbOEAdz8/9+-+Starship+Troopers+-+Robert+A+Heinlein+-+1959.mp3?mime=true',
+               'Robert A. Heinlein, The Moon is a Harsh Mistress, '
+               'https://1fizorp.oloadcdn.net/dl/l/iHmjhmlTmw5RvaXnF4/8bwjgLgz0o0/19+-+The+Moon+is+a+Harsh+Mistress+-+Robert+A+Heinlein+-+1966.mp3?mime=true'
+               ]
+
+    from pprint import pprint
+
+    for book in streams:
+        author, title, stream = book.split(",")
+
+        names = author.split(" ")
+        last_name = " ".join(names[1:])
+        first_name = names[0]
+        author = {"last_name": last_name}
+
+        audio_book = AudioBook(description="awesome book",
+                               from_data={"title": title,
+                                          "authors": [author],
+                                          "streams": [stream]})
+        pprint(audio_book.as_json)
+
+        audio_book.play()
+
+        author = BookAuthor(from_data=author)
+        pprint(author.as_json)

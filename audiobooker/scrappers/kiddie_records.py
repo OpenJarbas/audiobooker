@@ -2,9 +2,11 @@ from audiobooker.exceptions import UnknownAuthorIdException, \
     UnknownBookIdException, UnknownAuthorException, UnknownBookException, \
     ParseErrorException
 
-from audiobooker.scrappers import AudioBook, AudioBookSource
+from audiobooker import AudioBook
+from audiobooker.scrappers import AudioBookSource
 
 from fuzzywuzzy import process
+from threading import Thread
 
 
 class KiddieAudioBook(AudioBook):
@@ -104,6 +106,15 @@ class KiddieRecords(AudioBookSource):
             "http://www.kiddierecords.com/albums/index_3.htm",
             "http://www.kiddierecords.com/xmas/index.htm"]
     _cache = None
+
+    @staticmethod
+    def populate_cache(threaded=False):
+        if KiddieRecords._cache is None:
+            if threaded:
+                t = Thread(target=KiddieRecords.get_all_audiobooks,
+                           daemon=True).start()
+            else:
+                KiddieRecords._cache = KiddieRecords.get_all_audiobooks()
 
     @staticmethod
     def scrap_all_audiobooks(limit=-1, offset=0):
@@ -318,7 +329,7 @@ class KiddieRecords(AudioBookSource):
         return streams, pics, buckets
 
     @staticmethod
-    def get_all_audiobooks(limit=2000, offset=0, cache=True):
+    def get_all_audiobooks(limit=2000, offset=0):
         """
 
         Args:
@@ -329,13 +340,11 @@ class KiddieRecords(AudioBookSource):
             list : list of KiddieRecordsAudioBook objects
 
         """
-        if cache and KiddieRecords._cache is not None:
+        if KiddieRecords._cache is not None:
             return KiddieRecords._cache
-        elif cache:
-            KiddieRecords._cache = [b for b in
-                                    KiddieRecords.scrap_all_audiobooks()]
-            return KiddieRecords._cache
-        return [b for b in KiddieRecords.scrap_all_audiobooks()]
+        KiddieRecords._cache = [b for b in
+                                KiddieRecords.scrap_all_audiobooks()]
+        return KiddieRecords._cache
 
     @staticmethod
     def get_audiobook(book_id):

@@ -1,7 +1,8 @@
 import requests
 import feedparser
-from audiobooker.scrappers import AudioBook, BookAuthor, BookGenre, \
-    AudioBookSource
+from audiobooker import AudioBook, BookGenre, BookAuthor
+from audiobooker.scrappers import AudioBookSource
+from threading import Thread
 
 
 class LibrivoxAudioBook(AudioBook):
@@ -111,6 +112,16 @@ class Librivox(AudioBookSource):
     """
     base_url = "https://librivox.org/api/feed/audiobooks/?%s&format=json"
     authors_url = "https://librivox.org/api/feed/authors/?%s&format=json"
+    _cache = None
+
+    @staticmethod
+    def populate_cache(threaded=False):
+        if Librivox._cache is None:
+            if threaded:
+                t = Thread(target=Librivox.get_all_audiobooks,
+                           daemon=True).start()
+            else:
+                Librivox._cache = Librivox.get_all_audiobooks()
 
     @staticmethod
     def scrap_all_audiobooks(limit=2000, offset=0):
@@ -140,7 +151,11 @@ class Librivox(AudioBookSource):
             list : list of LibrivoxAudioBook objects
 
         """
-        return [book for book in Librivox.scrap_all_audiobooks(limit, offset)]
+        if Librivox._cache is not None:
+            return Librivox._cache
+        Librivox._cache = [book for book in
+                           Librivox.scrap_all_audiobooks(limit, offset)]
+        return Librivox._cache
 
     @staticmethod
     def get_audiobook(book_id):
