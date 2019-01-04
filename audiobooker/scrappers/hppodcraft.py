@@ -26,6 +26,8 @@ class HPPodcraft(AudioBookSource):
             if href.endswith(".mp3"):
                 title = url["title"].replace("HP Lovecraft Literary Podcast "
                                              "- ", "")
+                if not href.startswith(HPPodcraft.base_url):
+                    href = HPPodcraft.base_url + href
                 yield AudioBook(title=title, book_id=str(i),
                                 stream_list=[href], url=HPPodcraft.search_url,
                                 authors=[{"first_name": "Howard P.",
@@ -104,3 +106,4 @@ if __name__ == "__main__":
 
     for book in book_lib.scrap_all_audiobooks():
         pprint(book.as_json)
+        book.play()
