@@ -211,6 +211,7 @@ class LoyalBooksAudioBook(AudioBook):
         bucket["runtime"] = self.runtime
         bucket["language"] = self.lang
         bucket["rating"] = self.rating
+        bucket["streams"] = [s for s in self.streamer]
         return bucket
 
     def __repr__(self):

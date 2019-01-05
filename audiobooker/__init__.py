@@ -295,6 +295,7 @@ class AudioBook(object):
         bucket["id"] = self.book_id
         bucket["runtime"] = self.runtime
         bucket["language"] = self.lang
+        bucket["streams"] = [s for s in self.streamer]
         return bucket
 
     def from_json(self, json_data):

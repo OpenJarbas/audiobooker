@@ -45,6 +45,7 @@ class KiddieAudioBook(AudioBook):
         bucket["runtime"] = self.runtime
         bucket["language"] = self.lang
         bucket["release_date"] = self.release_date
+        bucket["streams"] = [s for s in self.streamer]
         return bucket
 
     def calc_runtime(self, data=None):
