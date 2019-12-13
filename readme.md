@@ -52,8 +52,10 @@ for book in scraper.scrap_by_genre("Science fiction"):
 for book in LoyalBooks.search_audiobooks(author="Lovecraft"):
     print(book.as_json)
 ```
+
 search kid stories
-```
+
+```python
 from audiobooker.scrappers.kiddie_records import KiddieRecords
 
 for b in KiddieRecords.search_audiobooks(genre="song"):
@@ -64,5 +66,5 @@ for b in KiddieRecords.search_audiobooks(title="Snow White and the Seven Dwarfs"
     print(b.as_json)
 
 for b in KiddieRecords.scrap_all_audiobooks():
-    pprint(b.as_json)
+    print(b.as_json)
 ```
