@@ -8,6 +8,9 @@ class HPPodcraft(AudioBookSource):
     base_url = "http://hppodcraft.com/"
     search_url = "http://hppodcraft.com/full-story-readings/"
 
+    def __init__(self):
+        raise RuntimeError("Webpage source changed, scrapper deprecated ")
+
     @staticmethod
     def scrap_all_audiobooks(limit=-1, offset=0):
         """
