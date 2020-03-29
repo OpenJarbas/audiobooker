@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from threading import Thread
-from fuzzywuzzy import process
+from rapidfuzz import process
 from audiobooker.exceptions import UnknownAuthorIdException, \
     UnknownBookIdException, ScrappingError, UnknownGenreIdException, \
     UnknownAuthorException, UnknownBookException, UnknownGenreException

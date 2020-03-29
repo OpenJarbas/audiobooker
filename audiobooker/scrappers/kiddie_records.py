@@ -5,7 +5,7 @@ from audiobooker.exceptions import UnknownAuthorIdException, \
 from audiobooker import AudioBook
 from audiobooker.scrappers import AudioBookSource
 
-from fuzzywuzzy import process
+from rapidfuzz import process
 
 
 class KiddieAudioBook(AudioBook):
