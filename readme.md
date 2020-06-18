@@ -1,8 +1,8 @@
 # AudioBooker
 
-AudioBook scrapper and player
+AudioBook scrapper
 
-Currently supports [Librivox](https://librivox.org/), [LoyalBooks](http://www.loyalbooks.com) and [KiddieRecords](http://www.kiddierecords.com/)
+Currently supports [Librivox](https://librivox.org/) and [LoyalBooks](http://www.loyalbooks.com) 
 
 Will be expanded with more sources over time, suggestions and Pull Requests welcome!
 
@@ -14,7 +14,8 @@ pip install audiobooker
 
 ## Usage
 
-search libribox
+search librivox
+
 ```python
 from audiobooker.scrappers.librivox import Librivox
 
@@ -51,20 +52,4 @@ for book in scraper.scrap_by_genre("Science fiction"):
     
 for book in LoyalBooks.search_audiobooks(author="Lovecraft"):
     print(book.as_json)
-```
-
-search kid stories
-
-```python
-from audiobooker.scrappers.kiddie_records import KiddieRecords
-
-for b in KiddieRecords.search_audiobooks(genre="song"):
-    print(b.as_json)
-    b.play()
-
-for b in KiddieRecords.search_audiobooks(title="Snow White and the Seven Dwarfs"):
-    print(b.as_json)
-
-for b in KiddieRecords.scrap_all_audiobooks():
-    print(b.as_json)
 ```

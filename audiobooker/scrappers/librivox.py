@@ -1,6 +1,5 @@
-import requests
 import feedparser
-from audiobooker import AudioBook, BookGenre, BookAuthor
+from audiobooker import AudioBook, BookGenre, BookAuthor, session
 from audiobooker.scrappers import AudioBookSource
 
 
@@ -124,7 +123,7 @@ class Librivox(AudioBookSource):
         """
         url = Librivox.base_url % \
               ("limit=" + str(limit) + "offset=" + str(offset) + "&extended=1")
-        json_data = requests.get(url).json()['books']
+        json_data = session.get(url).json()['books']
         for k in json_data:
             yield LibrivoxAudioBook(from_data=json_data[k])
 
@@ -140,7 +139,7 @@ class Librivox(AudioBookSource):
 
         """
         url = Librivox.base_url % ("id=" + str(book_id),)
-        json_data = requests.get(url).json()['books']
+        json_data = session.get(url).json()['books']
         return LibrivoxAudioBook(from_data=json_data[0])
 
     @staticmethod
@@ -154,7 +153,7 @@ class Librivox(AudioBookSource):
 
         """
         url = Librivox.authors_url % ("id=" + str(author_id),)
-        json_data = requests.get(url).json()["authors"]
+        json_data = session.get(url).json()["authors"]
         return BookAuthor(from_data=json_data[0])
 
     @staticmethod
@@ -189,7 +188,7 @@ class Librivox(AudioBookSource):
             raise TypeError
         searchterm = "&".join(searchterm)
         url = Librivox.base_url % (searchterm,)
-        json_data = requests.get(url).json()["books"]
+        json_data = session.get(url).json()["books"]
         return [LibrivoxAudioBook(from_data=a) for a in json_data]
 
 

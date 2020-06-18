@@ -1,15 +1,19 @@
 import json
 import subprocess
-import requests
 from bs4 import BeautifulSoup
+from requests_cache import CachedSession
+from datetime import timedelta
 
 from audiobooker.exceptions import UnknownAuthorIdException, \
     UnknownBookIdException, UnknownDurationError, ScrappingError, \
     UnknownGenreIdException, UnknownAuthorException, UnknownBookException, \
     UnknownGenreException, ParseErrorException
 
+expire_after = timedelta(hours=1)
+session = CachedSession(backend='memory', expire_after=expire_after)
 
-class BookGenre(object):
+
+class BookGenre:
     """
     """
 
@@ -64,7 +68,7 @@ class BookGenre(object):
         return "BookGenre(" + str(self) + ", " + self.genre_id + ")"
 
 
-class BookAuthor(object):
+class BookAuthor:
     """
     """
 
@@ -137,7 +141,8 @@ class BookAuthor(object):
         return "BookAuthor(" + str(self) + ", " + self.author_id + ")"
 
 
-class AudioBook(object):
+class AudioBook:
+
 
     def __init__(self, title="", authors=None, description="", genres=None,
                  book_id="", runtime=0, url="", img="", language='english',
@@ -181,10 +186,10 @@ class AudioBook(object):
     @property
     def html(self):
         try:
-            return requests.get(self.url).text
+            return session.get(self.url).text
         except Exception as e:
             try:
-                return requests.get(self.url, verify=False).text
+                return session.get(self.url, verify=False).text
             except:
                 return None
 
