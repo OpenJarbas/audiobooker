@@ -1,5 +1,5 @@
 import requests
-from audiobooker import AudioBook, BookGenre, BookAuthor
+from audiobooker import AudioBook, BookTag, BookAuthor
 from audiobooker.scrappers import AudioBookSource
 
 
@@ -23,7 +23,7 @@ class AudioAnarchyAudioBook(AudioBook):
                 "title": title.strip(),
                 "streams": streams,
                 "rating": 0,
-                "genres": [],
+                "tags": [],
                 "img": img}
 
     def from_page(self):
@@ -33,9 +33,9 @@ class AudioAnarchyAudioBook(AudioBook):
         if not self._description:
             self._description = data.get("description") or self.title
         self.img = data.get("img", self.img)
-        for genre in data["genres"]:
-            if genre.as_json not in self._genres:
-                self._genres.append(genre.as_json)
+        for tag in data["tags"]:
+            if tag.as_json not in self._tags:
+                self._tags.append(tag.as_json)
         for author in data["authors"]:
             if author.as_json not in self._authors:
                 self._authors.append(author.as_json)
@@ -49,8 +49,8 @@ class AudioAnarchyAudioBook(AudioBook):
 
 class AudioAnarchy(AudioBookSource):
     base_url = "http://www.audioanarchy.org"
-    _genres = ["Anarchy"]
-    _genre_pages = {"Anarchy":'http://www.audioanarchy.org'}
+    _tags = ["Anarchy"]
+    _tag_pages = {"Anarchy":'http://www.audioanarchy.org'}
 
     @staticmethod
     def _parse_page(html, limit=-1):
@@ -59,11 +59,13 @@ class AudioAnarchy(AudioBookSource):
             try:
                 a = entry.find("a")
                 img = entry.find("img")
-                yield AudioAnarchyAudioBook(from_data={
+                book = AudioAnarchyAudioBook(from_data={
                     "title": img["alt"],
                     "url": "https://www.audioanarchy.org/" + a["href"],
                     "img": "https://www.audioanarchy.org/" + img["src"]
                 })
+                book.from_page()  # parse url
+                yield book
             except:
                 raise
                 continue
@@ -73,7 +75,7 @@ class AudioAnarchy(AudioBookSource):
         return AudioAnarchy._parse_page(html)
 
     @classmethod
-    def search_audiobooks(cls, since=None, author=None, title=None, genre=None,
+    def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
                           limit=25):
         html = requests.get(AudioAnarchy.base_url).text
         return AudioAnarchy._parse_page(html)

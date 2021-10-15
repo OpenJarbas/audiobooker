@@ -1,9 +1,9 @@
 import requests
-from audiobooker import AudioBook, BookGenre, BookAuthor
+from audiobooker import AudioBook, BookAuthor
 from audiobooker.scrappers import AudioBookSource
 
 
-class StephenKingAudioBooksAudioBook(AudioBook):
+class StephenKingAudioBook(AudioBook):
     base_url = "https://stephenkingaudiobooks.com/"
 
     def parse_page(self):
@@ -37,7 +37,7 @@ class StephenKingAudioBooksAudioBook(AudioBook):
                 "title": title.strip(),
                 "streams": streams,
                 "rating": 0,
-                "genres": [],
+                "tags": [],
                 "img": img}
 
     def from_page(self):
@@ -48,9 +48,9 @@ class StephenKingAudioBooksAudioBook(AudioBook):
             self._description = data["description"]
 
         self.img = data.get("img", self.img)
-        for genre in data["genres"]:
-            if genre.as_json not in self._genres:
-                self._genres.append(genre.as_json)
+        for tag in data["tags"]:
+            if tag.as_json not in self._tags:
+                self._tags.append(tag.as_json)
         for author in data["authors"]:
             if author.as_json not in self._authors:
                 self._authors.append(author.as_json)
@@ -58,31 +58,29 @@ class StephenKingAudioBooksAudioBook(AudioBook):
         self.raw.update(data)
 
     def __repr__(self):
-        return "StephenKingAudioBooksAudioBook(" + str(
+        return "StephenKingAudioBook(" + str(
             self) + ", " + self.book_id + ")"
 
 
 class StephenKingAudioBooks(AudioBookSource):
     base_url = "https://stephenkingaudiobooks.com"
-    _genres = ["Harry Potter", 'Stephen King']
-    _genre_pages = {
+    _tags = ["Harry Potter", 'Stephen King']
+    _tag_pages = {
         "Harry Potter": "https://stephenkingaudiobooks.com/category/harry-potter/",
-        'Stephen King':'https://stephenkingaudiobooks.com/category/stephen-king/'}
+        'Stephen King': 'https://stephenkingaudiobooks.com/category/stephen-king/'}
 
-    @staticmethod
-    def _parse_page(html, limit=-1):
-        soup = StephenKingAudioBooks._get_soup(html)
+    @classmethod
+    def _parse_page(cls, html, limit=-1):
+        soup = cls._get_soup(html)
         for entry in soup.find_all("article"):
             try:
                 a = entry.find("a")
                 img = entry.find("img")["src"]
                 url = a["href"]
                 title = a["title"]
-                yield StephenKingAudioBooksAudioBook(from_data={
-                    "title": title,
-                    "url": url,
-                    "img": img
-                })
+                book = StephenKingAudioBook(title=title, url=url, img=img)
+                book.from_page()  # parse url
+                yield book
             except:
                 continue
         if limit == -1 or limit > 0:
@@ -90,12 +88,12 @@ class StephenKingAudioBooks(AudioBookSource):
             next_page = soup.find("div", {"class": "nav-previous"})
             if next_page:
                 html = requests.get(next_page.find("a")["href"]).text
-                for ntry in StephenKingAudioBooks._parse_page(html, limit=limit):
+                for ntry in cls._parse_page(html, limit=limit):
                     yield ntry
 
     @classmethod
-    def scrap_by_genre(cls, genre, limit=-1, offset=0):
-        for book in cls.search_audiobooks(genre=genre):
+    def scrap_by_tag(cls, tag, limit=-1, offset=0):
+        for book in cls.search_audiobooks(tag=tag):
             yield book
 
     @classmethod
@@ -104,22 +102,22 @@ class StephenKingAudioBooks(AudioBookSource):
         return cls._parse_page(html)
 
     @classmethod
-    def search_audiobooks(cls, since=None, author=None, title=None, genre=None,
+    def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
                           limit=25):
         """
         Args:
             since: a UNIX timestamp; returns all projects cataloged since that time
             author: all records by that author last name
             title: all matching titles
-            genre: all projects of the matching genre
+            tag: all projects of the matching tag
         Yields:
             AudioBook objects
         """
         query = ""
         if title:
             query += title + " "
-        if genre:
-            query += genre + " "
+        if tag:
+            query += tag + " "
         if author:
             query += author + " "
         html = requests.get(cls.base_url, params={"s": query}).text
@@ -128,7 +126,7 @@ class StephenKingAudioBooks(AudioBookSource):
     @classmethod
     def get_audiobook(cls, book_id):
         url = cls.base_url + '/' + book_id
-        book = StephenKingAudioBooksAudioBook(url=url)
+        book = StephenKingAudioBook(url=url)
         return book
 
     @classmethod
@@ -138,8 +136,9 @@ class StephenKingAudioBooks(AudioBookSource):
 
 if __name__ == "__main__":
     from pprint import pprint
-   # for book in StephenKingAudioBooks.search_audiobooks(title="Dark Tower"):
-   #     pprint(book.as_json)
+
+    # for book in StephenKingAudioBooks.search_audiobooks(title="Dark Tower"):
+    #     pprint(book.as_json)
 
     scraper = StephenKingAudioBooks()
     for book in scraper.scrap_popular():

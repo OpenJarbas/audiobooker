@@ -1,5 +1,5 @@
 import requests
-from audiobooker import AudioBook, BookGenre, BookAuthor
+from audiobooker import AudioBook, BookTag, BookAuthor
 from audiobooker.scrappers import AudioBookSource
 
 
@@ -32,8 +32,8 @@ class ThoughtAudioAudioBook(AudioBook):
 
 class ThoughtAudio(AudioBookSource):
     base_url = "http://thoughtaudio.com"
-    _genres = ["Philosophy"]
-    _genre_pages = {"Philosophy": 'http://thoughtaudio.com'}
+    _tags = ["Philosophy"]
+    _tag_pages = {"Philosophy": 'http://thoughtaudio.com'}
 
     @classmethod
     def _parse_page(cls, html, limit=-1):
@@ -42,11 +42,13 @@ class ThoughtAudio(AudioBookSource):
             try:
                 a = entry.find("a")
                 img = entry.find("img")
-                yield ThoughtAudioAudioBook(from_data={
+                book = ThoughtAudioAudioBook(from_data={
                     "title": entry.text,
                     "url": a["href"],
                     "img": img["src"]
                 })
+                book.from_page()  # parse url
+                yield book
             except:
                 continue
 
@@ -57,11 +59,13 @@ class ThoughtAudio(AudioBookSource):
             try:
                 a = entry.find("a")
                 img = entry.find("img")
-                yield ThoughtAudioAudioBook(from_data={
+                book = ThoughtAudioAudioBook(from_data={
                     "title": a.text,
                     "url": a["href"],
                     "img": img["src"]
                 })
+                book.from_page()  # parse url
+                yield book
             except:
                 continue
 
@@ -71,13 +75,13 @@ class ThoughtAudio(AudioBookSource):
         return cls._parse_page(html)
 
     @classmethod
-    def search_audiobooks(cls, since=None, author=None, title=None, genre=None,
+    def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
                           limit=25):
         query = ""
         if title:
             query += title + " "
-        if genre:
-            query += genre + " "
+        if tag:
+            query += tag + " "
         if author:
             query += author + " "
         html = requests.get(cls.base_url, params={"s": query}).text

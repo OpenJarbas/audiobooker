@@ -1,15 +1,15 @@
 import feedparser
-from audiobooker import AudioBook, BookGenre, BookAuthor, session
+from audiobooker import AudioBook, BookTag, BookAuthor, session
 from audiobooker.scrappers import AudioBookSource
 
 
 class LibrivoxAudioBook(AudioBook):
-    def __init__(self, title="", authors=None, description="", genres=None,
+    def __init__(self, title="", authors=None, description="", tags=None,
                  book_id="", runtime=0, url="", img="", rss_url="",
                  copyright_year=0, language='english', from_data=None):
         self.rss_url = rss_url
         self.copyright_year = copyright_year
-        AudioBook.__init__(self, title, authors, description, genres,
+        AudioBook.__init__(self, title, authors, description, tags,
                            book_id, runtime, url, img, language, from_data=from_data)
 
     @property
@@ -74,14 +74,14 @@ class Librivox(AudioBookSource):
         return BookAuthor(from_data=json_data[0])
 
     @classmethod
-    def search_audiobooks(cls, since=None, author=None, title=None, genre=None,
+    def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
                           limit=25):
         """
         Args:
             since: a UNIX timestamp; returns all projects cataloged since that time
             author: all records by that author last name
             title: all matching titles
-            genre: all projects of the matching genre
+            tag: all projects of the matching tag
 
         Returns:
             list : list of LibrivoxAudioBook objects
@@ -97,9 +97,9 @@ class Librivox(AudioBookSource):
             searchterm.append("author=" + author)
         if title:
             searchterm.append("title=" + title)
-        if genre:
+        if tag:
             # TODO validate
-            searchterm.append("genre=" + genre)
+            searchterm.append("tag=" + tag)
         if not searchterm:
             raise TypeError
         searchterm = "&".join(searchterm)

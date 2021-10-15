@@ -1,5 +1,5 @@
 import requests
-from audiobooker import AudioBook, BookGenre, BookAuthor
+from audiobooker import AudioBook, BookTag, BookAuthor
 from audiobooker.scrappers import AudioBookSource
 
 
@@ -10,7 +10,8 @@ class StoryNoryAudioBook(AudioBook):
         streams = []
         for url in self.soup.find_all("a"):
             if url["href"].endswith(".mp3"):
-                streams.append(url["href"])
+                if url["href"] not in streams:
+                    streams.append(url["href"])
 
         title = self.soup.find("title").text
         img = self.soup.find("img")
@@ -20,8 +21,9 @@ class StoryNoryAudioBook(AudioBook):
             img = img["src"]
         else:
             img = self.img
+        print(streams)
         return {"title": title.strip(),
-                "streams": list(set(streams)),
+                "streams": streams,
                 "img": img}
 
     def from_page(self):
@@ -37,7 +39,7 @@ class StoryNoryAudioBook(AudioBook):
 
 
 class StoryNory(AudioBookSource):
-    # TODO categories / genres
+    # TODO categories / tags
     base_url = "https://www.storynory.com"
 
     @classmethod
@@ -47,11 +49,13 @@ class StoryNory(AudioBookSource):
             try:
                 a = entry.find("a")
                 img = entry.find("img")
-                yield StoryNoryAudioBook(from_data={
+                book = StoryNoryAudioBook(from_data={
                     "title": entry.text,
                     "url": a["href"],
                     "img": img["src"]
                 })
+                book.from_page()  # parse url
+                yield book
             except:
                 continue
 
@@ -62,12 +66,16 @@ class StoryNory(AudioBookSource):
             try:
                 a = entry.find("a")
                 img = entry.find("img")
-                yield StoryNoryAudioBook(from_data={
+                book = StoryNoryAudioBook(from_data={
                     "title": a.text,
                     "description": entry.find("p").text,
                     "url": a["href"],
                     "img": img["src"] if img else ""
                 })
+                print(book)
+                book.from_page()  # parse url
+                print(book)
+                yield book
             except:
                 continue
 
@@ -95,22 +103,25 @@ class StoryNory(AudioBookSource):
             if p:
                 desc = p.text
             try:
-                yield StoryNoryAudioBook(description=desc, url=url,
+                book = StoryNoryAudioBook(description=desc,
+                                         url=url,
                                          title=img["alt"],
                                          img=img["data-ezsrc"])
             except:
-                yield StoryNoryAudioBook(description=desc,
+                book = StoryNoryAudioBook(description=desc,
                                          url=url,
                                          img=img["src"])
+            book.from_page()  # parse book url for streams
+            yield book
 
     @classmethod
-    def search_audiobooks(cls, since=None, author=None, title=None, genre=None,
+    def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
                           limit=25):
         query = ""
         if title:
             query += title + " "
-        if genre:
-            query += genre + " "
+        if tag:
+            query += tag + " "
         if author:
             query += author + " "
         html = requests.get(cls.base_url, params={"s": query}).text

@@ -1,5 +1,5 @@
 import feedparser
-from audiobooker import AudioBook, BookGenre, BookAuthor
+from audiobooker import AudioBook, BookTag, BookAuthor
 from audiobooker.scrappers import AudioBookSource
 from audiobooker.utils.google_search import GoogleSearch
 
@@ -7,12 +7,12 @@ from audiobooker.utils.google_search import GoogleSearch
 class LoyalBooksAudioBook(AudioBook):
     base_url = "http://www.loyalbooks.com"
 
-    def __init__(self, title="", authors=None, description="", genres=None,
+    def __init__(self, title="", authors=None, description="", tags=None,
                  book_id="", runtime=0, url="", rss_url="", img="", rating=0,
                  language='english', from_data=None):
         self.rss_url = rss_url or url + "/feed"
         self.rating = rating
-        AudioBook.__init__(self, title, authors, description, genres,
+        AudioBook.__init__(self, title, authors, description, tags,
                            book_id, runtime, url, img, language)
         self.from_rss()
 
@@ -53,21 +53,21 @@ class LoyalBooksAudioBook(AudioBook):
         authors = [BookAuthor(url=author_url, first_name=first_name,
                               last_name=last_name)]
 
-        genres = []
-        genres_table = self.soup.find(summary="Genres for this book")
-        if genres_table:
-            genres_urls = genres_table.find_all("a")
-            for a in genres_urls:
+        tags = []
+        tags_table = self.soup.find(summary="Genres for this book")
+        if tags_table:
+            tags_urls = tags_table.find_all("a")
+            for a in tags_urls:
                 url = self.base_url + a["href"]
-                genre = a.text.strip()
-                genre_id = LoyalBooks.get_genre_id(genre)
-                genres.append(BookGenre(name=genre, url=url,
-                                        genre_id=genre_id))
+                tag = a.text.strip()
+                tag_id = LoyalBooks.get_tag_id(tag)
+                tags.append(BookTag(name=tag, url=url,
+                                      tag_id=tag_id))
 
         img = self.soup.find("img", {"itemprop": "image", "class": "cover"})
         if img:
             img = self.base_url + img["src"]
-        return {"description": description, "rating": rating, "genres": genres,
+        return {"description": description, "rating": rating, "tags": tags,
                 "authors": authors, "title": title, "img": img}
 
     @property
@@ -135,9 +135,9 @@ class LoyalBooksAudioBook(AudioBook):
             self._description = data["description"]
 
         self.img = data.get("img", self.img)
-        for genre in data["genres"]:
-            if genre.as_json not in self._genres:
-                self._genres.append(genre.as_json)
+        for tag in data["tags"]:
+            if tag.as_json not in self._tags:
+                self._tags.append(tag.as_json)
         for author in data["authors"]:
             if author.as_json not in self._authors:
                 self._authors.append(author.as_json)
@@ -149,89 +149,89 @@ class LoyalBooksAudioBook(AudioBook):
 class LoyalBooks(AudioBookSource):
     base_url = "http://www.loyalbooks.com"
     popular_url = "http://www.loyalbooks.com"
-    genres_url = "http://www.loyalbooks.com/genre-menu"
+    tags_url = "http://www.loyalbooks.com/tag-menu"
     search_url = "http://www.loyalbooks.com/search?q=%s"
 
     @classmethod
-    def scrap_genres(cls):
-        soup = cls._get_soup(cls._get_html(cls.genres_url))
+    def scrap_tags(cls):
+        soup = cls._get_soup(cls._get_html(cls.tags_url))
         urls = soup.find("div", {"class": "left"}).find_all("a")
         bucket = {}
         for url in urls:
-            genre = url.text
+            tag = url.text
             url = url["href"]
-            if url.startswith("/genre"):
+            if url.startswith("/tag"):
                 url = "http://www.loyalbooks.com" + url
-                bucket[genre] = url
-        cls._genres = list(bucket.keys())
+                bucket[tag] = url
+        cls._tags = list(bucket.keys())
         return bucket
 
     @property
-    def genre_pages(self):
-        if LoyalBooks._genre_pages is None:
+    def tag_pages(self):
+        if LoyalBooks._tag_pages is None:
             try:
-                LoyalBooks._genre_pages = LoyalBooks.scrap_genres()
+                LoyalBooks._tag_pages = LoyalBooks.scrap_tags()
             except Exception as e:
-                LoyalBooks._genre_pages = {
-                    'Adventure': 'http://www.loyalbooks.com/genre/Adventure',
-                    'Advice': 'http://www.loyalbooks.com/genre/Advice',
-                    'Ancient Texts': 'http://www.loyalbooks.com/genre/Ancient_Texts',
-                    'Animals': 'http://www.loyalbooks.com/genre/Animals',
-                    'Art': 'http://www.loyalbooks.com/genre/Art',
-                    'Biography': 'http://www.loyalbooks.com/genre/Biography',
-                    'Children': 'http://www.loyalbooks.com/genre/Children',
-                    'Classics (antiquity)': 'http://www.loyalbooks.com/genre/Classics_antiquity',
-                    'Comedy': 'http://www.loyalbooks.com/genre/Comedy',
-                    'Cookery': 'http://www.loyalbooks.com/genre/Cookery',
-                    'Dramatic Works': 'http://www.loyalbooks.com/genre/Dramatic_Works',
-                    'Economics': 'http://www.loyalbooks.com/genre/Economics_Political_Economy',
-                    'Epistolary fiction': 'http://www.loyalbooks.com/genre/Epistolary_fiction',
-                    'Essay/Short nonfiction': 'http://www.loyalbooks.com/genre/Essay_Short_nonfiction',
-                    'Fairy tales': 'http://www.loyalbooks.com/genre/Fairy_tales',
-                    'Fantasy': 'http://www.loyalbooks.com/genre/Fantasy',
-                    'Fiction': 'http://www.loyalbooks.com/genre/Fiction',
-                    'Historical Fiction': 'http://www.loyalbooks.com/genre/Historical_Fiction',
-                    'History': 'http://www.loyalbooks.com/genre/History',
-                    'Holiday': 'http://www.loyalbooks.com/genre/Holiday',
-                    'Horror/Ghost stories': 'http://www.loyalbooks.com/genre/Horror_Ghost_stories',
-                    'Humor': 'http://www.loyalbooks.com/genre/Humor',
-                    'Instruction': 'http://www.loyalbooks.com/genre/Instruction',
-                    'Languages': 'http://www.loyalbooks.com/genre/Languages',
-                    'Literature': 'http://www.loyalbooks.com/genre/Literature',
-                    'Memoirs': 'http://www.loyalbooks.com/genre/Memoirs',
-                    'Music': 'http://www.loyalbooks.com/genre/Music',
-                    'Mystery': 'http://www.loyalbooks.com/genre/Mystery',
-                    'Myths/Legends': 'http://www.loyalbooks.com/genre/Myths_Legends',
-                    'Nature': 'http://www.loyalbooks.com/genre/Nature',
-                    'Non-fiction': 'http://www.loyalbooks.com/genre/Non-fiction',
-                    'Philosophy': 'http://www.loyalbooks.com/genre/Philosophy',
-                    'Play': 'http://www.loyalbooks.com/genre/Play',
-                    'Poetry': 'http://www.loyalbooks.com/genre/Poetry',
-                    'Politics': 'http://www.loyalbooks.com/genre/Politics',
-                    'Psychology': 'http://www.loyalbooks.com/genre/Psychology',
-                    'Religion': 'http://www.loyalbooks.com/genre/Religion',
-                    'Romance': 'http://www.loyalbooks.com/genre/Romance',
-                    'Satire': 'http://www.loyalbooks.com/genre/Satire',
-                    'Science': 'http://www.loyalbooks.com/genre/Science',
-                    'Science fiction': 'http://www.loyalbooks.com/genre/Science_fiction',
-                    'Sea stories': 'http://www.loyalbooks.com/genre/Sea_stories',
-                    'Self Published': 'http://www.loyalbooks.com/genre/Self-Published',
-                    'Short stories': 'http://www.loyalbooks.com/genre/Short_stories',
-                    'Spy stories': 'http://www.loyalbooks.com/genre/Spy_stories',
-                    'Teen/Young adult': 'http://www.loyalbooks.com/genre/Teen_Young_adult',
-                    'Tragedy': 'http://www.loyalbooks.com/genre/Tragedy',
-                    'Travel': 'http://www.loyalbooks.com/genre/Travel',
-                    'War stories': 'http://www.loyalbooks.com/genre/War_stories',
-                    'Westerns': 'http://www.loyalbooks.com/genre/Westerns'}
-        return self._genre_pages or {}
+                LoyalBooks._tag_pages = {
+                    'Adventure': 'http://www.loyalbooks.com/tag/Adventure',
+                    'Advice': 'http://www.loyalbooks.com/tag/Advice',
+                    'Ancient Texts': 'http://www.loyalbooks.com/tag/Ancient_Texts',
+                    'Animals': 'http://www.loyalbooks.com/tag/Animals',
+                    'Art': 'http://www.loyalbooks.com/tag/Art',
+                    'Biography': 'http://www.loyalbooks.com/tag/Biography',
+                    'Children': 'http://www.loyalbooks.com/tag/Children',
+                    'Classics (antiquity)': 'http://www.loyalbooks.com/tag/Classics_antiquity',
+                    'Comedy': 'http://www.loyalbooks.com/tag/Comedy',
+                    'Cookery': 'http://www.loyalbooks.com/tag/Cookery',
+                    'Dramatic Works': 'http://www.loyalbooks.com/tag/Dramatic_Works',
+                    'Economics': 'http://www.loyalbooks.com/tag/Economics_Political_Economy',
+                    'Epistolary fiction': 'http://www.loyalbooks.com/tag/Epistolary_fiction',
+                    'Essay/Short nonfiction': 'http://www.loyalbooks.com/tag/Essay_Short_nonfiction',
+                    'Fairy tales': 'http://www.loyalbooks.com/tag/Fairy_tales',
+                    'Fantasy': 'http://www.loyalbooks.com/tag/Fantasy',
+                    'Fiction': 'http://www.loyalbooks.com/tag/Fiction',
+                    'Historical Fiction': 'http://www.loyalbooks.com/tag/Historical_Fiction',
+                    'History': 'http://www.loyalbooks.com/tag/History',
+                    'Holiday': 'http://www.loyalbooks.com/tag/Holiday',
+                    'Horror/Ghost stories': 'http://www.loyalbooks.com/tag/Horror_Ghost_stories',
+                    'Humor': 'http://www.loyalbooks.com/tag/Humor',
+                    'Instruction': 'http://www.loyalbooks.com/tag/Instruction',
+                    'Languages': 'http://www.loyalbooks.com/tag/Languages',
+                    'Literature': 'http://www.loyalbooks.com/tag/Literature',
+                    'Memoirs': 'http://www.loyalbooks.com/tag/Memoirs',
+                    'Music': 'http://www.loyalbooks.com/tag/Music',
+                    'Mystery': 'http://www.loyalbooks.com/tag/Mystery',
+                    'Myths/Legends': 'http://www.loyalbooks.com/tag/Myths_Legends',
+                    'Nature': 'http://www.loyalbooks.com/tag/Nature',
+                    'Non-fiction': 'http://www.loyalbooks.com/tag/Non-fiction',
+                    'Philosophy': 'http://www.loyalbooks.com/tag/Philosophy',
+                    'Play': 'http://www.loyalbooks.com/tag/Play',
+                    'Poetry': 'http://www.loyalbooks.com/tag/Poetry',
+                    'Politics': 'http://www.loyalbooks.com/tag/Politics',
+                    'Psychology': 'http://www.loyalbooks.com/tag/Psychology',
+                    'Religion': 'http://www.loyalbooks.com/tag/Religion',
+                    'Romance': 'http://www.loyalbooks.com/tag/Romance',
+                    'Satire': 'http://www.loyalbooks.com/tag/Satire',
+                    'Science': 'http://www.loyalbooks.com/tag/Science',
+                    'Science fiction': 'http://www.loyalbooks.com/tag/Science_fiction',
+                    'Sea stories': 'http://www.loyalbooks.com/tag/Sea_stories',
+                    'Self Published': 'http://www.loyalbooks.com/tag/Self-Published',
+                    'Short stories': 'http://www.loyalbooks.com/tag/Short_stories',
+                    'Spy stories': 'http://www.loyalbooks.com/tag/Spy_stories',
+                    'Teen/Young adult': 'http://www.loyalbooks.com/tag/Teen_Young_adult',
+                    'Tragedy': 'http://www.loyalbooks.com/tag/Tragedy',
+                    'Travel': 'http://www.loyalbooks.com/tag/Travel',
+                    'War stories': 'http://www.loyalbooks.com/tag/War_stories',
+                    'Westerns': 'http://www.loyalbooks.com/tag/Westerns'}
+        return self._tag_pages or {}
 
     @property
-    def genres(self):
-        if LoyalBooks._genres is None:
+    def tags(self):
+        if LoyalBooks._tags is None:
             try:
-                LoyalBooks._genres = list(self.genre_pages.keys())
+                LoyalBooks._tags = list(self.tag_pages.keys())
             except Exception as e:
-                LoyalBooks._genres = ['Advice', 'Instruction',
+                LoyalBooks._tags = ['Advice', 'Instruction',
                                       'Ancient Texts',
                                       'Biography', 'Memoirs', 'Languages',
                                       'Myths/Legends', 'Holiday', 'Art',
@@ -252,7 +252,7 @@ class LoyalBooks(AudioBookSource):
                                       'Teen/Young adult', 'Literature',
                                       'War stories', 'Science fiction',
                                       'Philosophy', 'Mystery']
-        return sorted(self._genres) or []
+        return sorted(self._tags) or []
 
     @classmethod
     def _parse_book_div(cls, book):
@@ -301,16 +301,16 @@ class LoyalBooks(AudioBookSource):
         return None
 
     @classmethod
-    def scrap_by_genre(cls, genre, limit=-1, offset=0):
+    def scrap_by_tag(cls, tag, limit=-1, offset=0):
         """
         Generator, yields AudioBook objects
         """
-        if genre not in cls._genre_pages:
-            cls._genre_pages = cls.scrap_genres()
-        if genre not in cls._genre_pages:
+        if tag not in cls._tag_pages:
+            cls._tag_pages = cls.scrap_tags()
+        if tag not in cls._tag_pages:
             return
 
-        url = cls._genre_pages[genre] + "?page=" + str(offset)
+        url = cls._tag_pages[tag] + "?page=" + str(offset)
         limit = int(limit)
         soup = cls._get_soup(cls._get_html(url))
         el = soup.find("table", {"class": "layout2-blue"})
@@ -325,8 +325,8 @@ class LoyalBooks(AudioBookSource):
             book = cls._parse_book_div(book)
             if book is None:
                 continue
-            book._genres = [BookGenre(name=genre, url=cls._genre_pages[genre],
-                                      genre_id=cls.get_genre_id(genre)).as_json],
+            book._tags = [BookTag(name=tag, url=cls._tag_pages[tag],
+                                    tag_id=cls.get_tag_id(tag)).as_json],
             yield book
 
         # check if last page reached
@@ -339,7 +339,7 @@ class LoyalBooks(AudioBookSource):
             return
 
         # crawl next page
-        for book in cls.scrap_by_genre(genre, offset + 1, limit):
+        for book in cls.scrap_by_tag(tag, offset + 1, limit):
             yield book
 
     @classmethod
@@ -355,14 +355,14 @@ class LoyalBooks(AudioBookSource):
                 yield b
 
     @classmethod
-    def search_audiobooks(cls, since=None, author=None, title=None, genre=None,
+    def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
                           limit=25):
         """
         Args:
             since: a UNIX timestamp; returns all projects cataloged since that time
             author: all records by that author last name
             title: all matching titles
-            genre: all projects of the matching genre
+            tag: all projects of the matching tag
 
         Yields:
             AudioBook objects
@@ -370,8 +370,8 @@ class LoyalBooks(AudioBookSource):
         query = ""
         if title:
             query += title + " "
-        if genre:
-            query += genre + " "
+        if tag:
+            query += tag + " "
         if author:
             query += author + " "
         ## TODO find out how to get callback and nocache values
@@ -421,21 +421,13 @@ class LoyalBooks(AudioBookSource):
         """
         Generator, yields AudioBook objects
         """
-        for genre in self.genres:
-            for book in self.scrap_by_genre(genre, limit, offset):
+        for tag in self.tags:
+            for book in self.scrap_by_tag(tag, limit, offset):
                 yield book
 
 
 if __name__ == "__main__":
     from pprint import pprint
-
-    book = LoyalBooks.get_audiobook('Slave-Is-A-Slave-by-H-Beam-Piper')
-    pprint(book.parse_page())
-
-    for a in book.authors:
-        print(a.as_json)
-
-    print(LoyalBooks.get_genre(40))
 
     for book in LoyalBooks.search_audiobooks(author="Lovecraft"):
         pprint(book.as_json)
@@ -444,10 +436,10 @@ if __name__ == "__main__":
     for book in scraper.scrap_popular():
         pprint(book.as_json)
 
-    for book in scraper.scrap_by_genre("Science fiction"):
+    for book in scraper.scrap_by_tag("Science fiction"):
         pprint(book.as_json)
 
     for book in scraper.scrap_all_audiobooks():
         pprint(book.as_json)
-    pprint(scraper.scrap_genres())
-    pprint(scraper.genres)
+    pprint(scraper.scrap_tags())
+    pprint(scraper.tags)

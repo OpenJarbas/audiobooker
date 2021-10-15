@@ -47,7 +47,7 @@ book = LoyalBooks.get_audiobook('Short-Science-Fiction-Collection-1')
 book.play()
 
 scraper = LoyalBooks()
-for book in scraper.scrap_by_genre("Science fiction"):
+for book in scraper.scrap_by_tag("Science fiction"):
     print(book.as_json)
     
 for book in LoyalBooks.search_audiobooks(author="Lovecraft"):

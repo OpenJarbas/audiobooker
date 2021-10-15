@@ -1,5 +1,5 @@
 import requests
-from audiobooker import AudioBook, BookGenre, BookAuthor
+from audiobooker import AudioBook, BookTag, BookAuthor
 from audiobooker.scrappers import AudioBookSource
 
 
@@ -37,7 +37,7 @@ class GoldenAudioBooksAudioBook(AudioBook):
                 "title": title.strip(),
                 "streams": streams,
                 "rating": 0,
-                "genres": [],
+                "tags": [],
                 "img": img}
 
     def from_page(self):
@@ -48,9 +48,9 @@ class GoldenAudioBooksAudioBook(AudioBook):
             self._description = data["description"]
 
         self.img = data.get("img", self.img)
-        for genre in data["genres"]:
-            if genre.as_json not in self._genres:
-                self._genres.append(genre.as_json)
+        for tag in data["tags"]:
+            if tag.as_json not in self._tags:
+                self._tags.append(tag.as_json)
         for author in data["authors"]:
             if author.as_json not in self._authors:
                 self._authors.append(author.as_json)
@@ -67,22 +67,22 @@ class GoldenAudioBooks(AudioBookSource):
     popular_url = "https://goldenaudiobooks.com/category/bestsellers"
 
     @classmethod
-    def scrap_genres(cls):
+    def scrap_tags(cls):
         bucket = {}
         soup = cls._get_soup(cls._get_html(cls.base_url))
-        for genre in soup.find("aside",
+        for tag in soup.find("aside",
                                {"class": "widget widget_categories"}). \
                 find_all("a"):
-            bucket[genre.text] = genre["href"]
+            bucket[tag.text] = tag["href"]
         return bucket
 
     @property
-    def genre_pages(self):
-        if self._genre_pages is None:
+    def tag_pages(self):
+        if self._tag_pages is None:
             try:
-                self._genre_pages = self.scrap_genres()
+                self._tag_pages = self.scrap_tags()
             except Exception as e:
-                self._genre_pages = {
+                self._tag_pages = {
                     'Action': 'https://goldenaudiobooks.com/category/action/',
                     'Adults': 'https://goldenaudiobooks.com/category/adults-audios/',
                     'Adventure': 'https://goldenaudiobooks.com/category/adventure/',
@@ -118,7 +118,7 @@ class GoldenAudioBooks(AudioBookSource):
                     'Thriller': 'https://goldenaudiobooks.com/category/thriller/',
                     'Uncategorized': 'https://goldenaudiobooks.com/category/uncategorized/',
                     'Westerns': 'https://goldenaudiobooks.com/category/westerns/'}
-        return self._genre_pages or {}
+        return self._tag_pages or {}
 
     @classmethod
     def _parse_page(cls, html, limit=-1):
@@ -128,15 +128,15 @@ class GoldenAudioBooks(AudioBookSource):
             img = entry.find("img")["data-src"]
             url = a["href"]
             title = a["title"]
-            genres = []
+            tags = []
             for a in entry.find("span", {"class": "cat-links"}). \
                     find_all("a"):
-                genres.append({"name": a.text, "url": a["href"]})
+                tags.append({"name": a.text, "url": a["href"]})
             yield GoldenAudioBooksAudioBook(from_data={
                 "title": title,
                 "url": url,
                 "img": img,
-                "genres": genres
+                "tags": tags
             })
         if limit == -1 or limit > 0:
             limit -= 1
@@ -147,15 +147,15 @@ class GoldenAudioBooks(AudioBookSource):
                     yield ntry
 
     @classmethod
-    def scrap_by_genre(cls, genre, limit=-1, offset=0):
-        if genre in cls.genres:
-            url = cls._genre_pages[genre]
+    def scrap_by_tag(cls, tag, limit=-1, offset=0):
+        if tag in cls._tag_pages:
+            url = cls._tag_pages[tag]
             html = requests.get(url).text
             for book in cls._parse_page(html):
-                # TODO inject genre in book obj
+                # TODO inject tag in book obj
                 yield book
         else:
-            for book in cls.search_audiobooks(genre=genre):
+            for book in cls.search_audiobooks(tag=tag):
                 yield book
 
     @classmethod
@@ -164,22 +164,22 @@ class GoldenAudioBooks(AudioBookSource):
         return cls._parse_page(html)
 
     @classmethod
-    def search_audiobooks(cls, since=None, author=None, title=None, genre=None,
+    def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
                           limit=25):
         """
         Args:
             since: a UNIX timestamp; returns all projects cataloged since that time
             author: all records by that author last name
             title: all matching titles
-            genre: all projects of the matching genre
+            tag: all projects of the matching tag
         Yields:
             AudioBook objects
         """
         query = ""
         if title:
             query += title + " "
-        if genre:
-            query += genre + " "
+        if tag:
+            query += tag + " "
         if author:
             query += author + " "
         html = requests.get(cls.base_url,
@@ -194,8 +194,8 @@ class GoldenAudioBooks(AudioBookSource):
 
     @classmethod
     def scrap_all_audiobooks(cls, limit=-1, offset=0):
-        for genre in cls._genres:
-            for book in cls.scrap_by_genre(genre, limit, offset):
+        for tag in cls._tags:
+            for book in cls.scrap_by_tag(tag, limit, offset):
                 yield book
 
 
@@ -207,8 +207,8 @@ if __name__ == "__main__":
     for a in book.authors:
         # print(a.as_json)
         pass
-    genres = GoldenAudioBooks.scrap_genres()
-    # print(genres)
+    tags = GoldenAudioBooks.scrap_tags()
+    # print(tags)
 
     for book in GoldenAudioBooks.search_audiobooks(author="Lovecraft"):
         pprint(book.as_json)
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     for book in scraper.scrap_popular():
         pprint(book.as_json)
 
-    for book in scraper.scrap_by_genre("science-fiction-audiobooks"):
+    for book in scraper.scrap_by_tag("science-fiction-audiobooks"):
         pprint(book.as_json)
 
     for book in scraper.scrap_all_audiobooks():

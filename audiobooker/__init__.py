@@ -13,34 +13,36 @@ expire_after = timedelta(hours=1)
 session = CachedSession(backend='memory', expire_after=expire_after)
 
 
-class BookGenre:
-    def __init__(self, name="", genre_id="", url="", from_data=None):
+class BookTag:
+    def __init__(self, name="", tag_id="", url="", from_data=None):
         self.name = name
-        self.genre_id = genre_id
+        self.tag_id = tag_id or name
         self.url = url
         if from_data:
             self.from_json(from_data)
 
     @property
     def as_json(self):
-        return {"name": self.name, "id": self.genre_id, "url": self.url}
+        return {"name": self.name,
+                "id": self.tag_id,
+                "url": self.url}
 
     def from_json(self, json_data):
         if isinstance(json_data, str):
             json_data = json.loads(json_data)
-        if isinstance(json_data, BookGenre):
+        if isinstance(json_data, BookTag):
             json_data = json_data.as_json
         if not isinstance(json_data, dict):
             raise TypeError
         self.name = json_data.get("name", self.name)
-        self.genre_id = json_data.get("id", self.genre_id) or self.name
+        self.tag_id = json_data.get("id", self.tag_id) or self.name
         self.url = json_data.get("url", self.url)
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
-        return "BookGenre(" + str(self) + ", " + self.genre_id + ")"
+        return "BookGenre(" + str(self) + ", " + self.tag_id + ")"
 
 
 class BookAuthor:
@@ -91,28 +93,31 @@ class BookAuthor:
 
 
 class AudioBook:
-    def __init__(self, title="", authors=None, description="", genres=None,
+    def __init__(self, title="", authors=None, description="", tags=None,
                  book_id="", runtime=0, url="", img="", language='english',
-                 from_data=None, stream_list=None):
+                 from_data=None, stream_list=None, parse=False):
         self.img = img
         self.url = url
         self.title = title
         self._authors = authors or []
         self._description = description
-        self._genres = genres or []
+        self._tags = tags or []
         self.book_id = book_id
         self.runtime = runtime
         self.lang = language.lower()
         self._stream_list = stream_list or []
         if not self.book_id and "/" in self.url:
             self.book_id = self.url.split("/")[-1]
+        elif not self.book_id:
+            self.book_id = title
         if from_data:
             self.from_json(from_data)
         self.raw = from_data or {}
-        try:
-            self.from_page()
-        except:
-            pass
+        if parse:
+            try:
+                self.from_page()
+            except:
+                pass
 
     def calc_runtime(self, data=None):
         raise UnknownDurationError
@@ -187,8 +192,8 @@ class AudioBook:
         return [BookAuthor(from_data=a) for a in authors]
 
     @property
-    def genres(self):
-        return [BookGenre(from_data=a) for a in self._genres]
+    def tags(self):
+        return [BookTag(from_data=a) for a in self._tags]
 
     @property
     def as_json(self):
@@ -198,7 +203,7 @@ class AudioBook:
         bucket["title"] = self.title
         bucket["authors"] = self._authors
         bucket["description"] = self._description
-        bucket["genres"] = self._genres
+        bucket["tags"] = self._tags
         bucket["id"] = self.book_id
         bucket["runtime"] = self.runtime
         bucket["language"] = self.lang
@@ -220,7 +225,7 @@ class AudioBook:
         self._authors = json_data.get("authors", self._authors)
         self._authors = self._authors or [json_data.get("author", "")]
         self._description = json_data.get("description", self._description)
-        self._genres = json_data.get("genres", self._genres)
+        self._tags = json_data.get("tags", self._tags)
         self.book_id = json_data.get("id")
         self.runtime = json_data.get("runtime", self.runtime)
         self.lang = json_data.get('language',
@@ -235,3 +240,6 @@ class AudioBook:
 
     def __repr__(self):
         return "AudioBook(" + str(self) + ", " + self.book_id + ")"
+
+
+

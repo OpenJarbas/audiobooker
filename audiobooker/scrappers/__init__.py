@@ -4,19 +4,19 @@ from rapidfuzz import process
 from audiobooker.exceptions import UnknownAuthorIdException, \
     UnknownBookIdException, ScrappingError, UnknownGenreIdException, \
     UnknownAuthorException, UnknownBookException, UnknownGenreException
-from audiobooker import AudioBook, BookAuthor, session, BookGenre
+from audiobooker import AudioBook, BookAuthor, session, BookTag
 from audiobooker.utils import random_user_agent
 
 
 class AudioBookSource:
     base_url = ""
     popular_url = ""
-    genres_url = ""
+    tags_url = ""
     authors_url = ""
     search_url = ""
     _cache = None
-    _genres = []
-    _genre_pages = {}
+    _tags = []
+    _tag_pages = {}
 
     @classmethod
     def populate_cache(self, books=None, threaded=False):
@@ -33,8 +33,8 @@ class AudioBookSource:
             self._cache += books
 
     @property
-    def genres(self):
-        return sorted(self._genres) or []
+    def tags(self):
+        return sorted(self._tags) or []
 
     @staticmethod
     def _get_html(url):
@@ -54,20 +54,20 @@ class AudioBookSource:
         raise ScrappingError
 
     @property
-    def genre_pages(self):
-        return self._genre_pages or {}
+    def tag_pages(self):
+        return self._tag_pages or {}
 
     @classmethod
-    def scrap_genres(cls):
-        return cls._genre_pages
+    def scrap_tags(cls):
+        return cls._tag_pages
 
     @staticmethod
     def scrap_all_audiobooks(limit=-1, offset=0):
         raise ScrappingError
 
     @classmethod
-    def scrap_by_genre(cls, genre, limit=-1, offset=0):
-        for book in cls.search_audiobooks(genre=genre):
+    def scrap_by_tag(cls, tag, limit=-1, offset=0):
+        for book in cls.search_audiobooks(tag=tag):
             yield book
 
     @classmethod
@@ -79,26 +79,26 @@ class AudioBookSource:
         return self._cache
 
     @classmethod
-    def get_genre_id(cls, genre):
-        if genre in cls._genres:
-            return str(cls._genres.index(genre))
-        genres = []
-        for gen in cls.scrap_genres():
-            genres.append(gen)
-        genres = sorted(genres)
-        return str(genres.index(genre))
+    def get_tag_id(cls, tag):
+        if tag in cls._tags:
+            return str(cls._tags.index(tag))
+        tags = []
+        for gen in cls.scrap_tags():
+            tags.append(gen)
+        tags = sorted(tags)
+        return str(tags.index(tag))
 
     @classmethod
-    def get_genre(cls, genre_id):
-        if genre_id <= len(cls._genres):
-            genre = cls._genres[genre_id]
+    def get_tag(cls, tag_id):
+        if tag_id <= len(cls._tags):
+            tag = cls._tags[tag_id]
         else:
-            genres = []
-            for genre in cls.scrap_genres():
-                genres.append(genre)
-            genres = sorted(genres)
-            genre = genres[genre_id]
-        return BookGenre(genre_id=genre_id, name=genre)
+            tags = []
+            for tag in cls.scrap_tags():
+                tags.append(tag)
+            tags = sorted(tags)
+            tag = tags[tag_id]
+        return BookTag(tag_id=tag_id, name=tag)
 
     @staticmethod
     def get_audiobook(book_id):
@@ -118,13 +118,13 @@ class AudioBookSource:
 
     @classmethod
     def search_audiobooks(self, since=None, author=None, title=None,
-                          genre=None, limit=25):
+                          tag=None, limit=25):
         """
         Args:
             since: a UNIX timestamp; returns all projects cataloged since that time
             author: all records by that author last name
             title: all matching titles
-            genre: all projects of the matching genre
+            tag: all projects of the matching tag
             limit: max entries to return (int)
 
         Returns:
