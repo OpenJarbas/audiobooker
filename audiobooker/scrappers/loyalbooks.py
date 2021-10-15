@@ -10,31 +10,11 @@ class LoyalBooksAudioBook(AudioBook):
     def __init__(self, title="", authors=None, description="", genres=None,
                  book_id="", runtime=0, url="", rss_url="", img="", rating=0,
                  language='english', from_data=None):
-        """
-
-        Args:
-            title:
-            authors:
-            description:
-            genres:
-            book_id:
-            runtime:
-            url:
-            rss_url:
-            language:
-            from_data:
-        """
-        AudioBook.__init__(self, title, authors, description, genres,
-                           book_id, runtime, url, img, language)
         self.rss_url = rss_url or url + "/feed"
         self.rating = rating
-        if not self.book_id and self.url:
-            self.book_id = self.url.split("/")[-1]
-        if from_data:
-            self.from_json(from_data)
-        self.raw = from_data or {}
+        AudioBook.__init__(self, title, authors, description, genres,
+                           book_id, runtime, url, img, language)
         self.from_rss()
-        self.from_page()
 
     def parse_page(self):
         title = self.soup.find("span", {"itemprop": "name"}).text
@@ -92,56 +72,22 @@ class LoyalBooksAudioBook(AudioBook):
 
     @property
     def rss_data(self):
-        """
-
-        Returns:
-
-        """
         return feedparser.parse(self.rss_url)
 
     @property
     def streamer(self):
-        """
-
-        """
         for stream in self.rss_data["entries"]:
             try:
                 for url in stream["links"]:
                     if url["type"] == 'audio/mpeg':
                         yield url["href"]
             except Exception as e:
-                print(e)
                 continue
 
-    @property
-    def authors(self):
-        """
-
-        Returns:
-
-        """
-        return [BookAuthor(from_data=a) for a in self._authors]
-
-    @property
-    def genres(self):
-        """
-
-        Returns:
-
-        """
-        return [BookGenre(from_data=a) for a in self._genres]
-
     def from_json(self, json_data):
-        """
-
-        Args:
-            json_data:
-        """
         AudioBook.from_json(self, json_data)
         self.rss_url = json_data.get("url_rss", self.rss_url)
         self.rating = json_data.get("rating", self.rating)
-        if not self.book_id and self.url:
-            self.book_id = self.url.split("/")[-1]
 
     def calc_runtime(self, data=None):
         data = data or self.rss_data["entries"]
@@ -196,29 +142,7 @@ class LoyalBooksAudioBook(AudioBook):
             if author.as_json not in self._authors:
                 self._authors.append(author.as_json)
 
-    @property
-    def as_json(self):
-        bucket = self.raw
-        bucket["url"] = self.url
-        bucket["rss_url"] = self.rss_url
-        bucket["img"] = self.img
-        bucket["title"] = self.title
-        bucket["authors"] = self._authors
-        bucket["description"] = self._description
-        bucket["genres"] = self._genres
-        bucket["id"] = self.book_id
-        bucket["runtime"] = self.runtime
-        bucket["language"] = self.lang
-        bucket["rating"] = self.rating
-        bucket["streams"] = [s for s in self.streamer]
-        return bucket
-
     def __repr__(self):
-        """
-
-        Returns:
-
-        """
         return "LoyalBooksAudioBook(" + str(self) + ", " + self.book_id + ")"
 
 
@@ -227,13 +151,10 @@ class LoyalBooks(AudioBookSource):
     popular_url = "http://www.loyalbooks.com"
     genres_url = "http://www.loyalbooks.com/genre-menu"
     search_url = "http://www.loyalbooks.com/search?q=%s"
-    _genres = None
-    _genre_pages = None
 
-    @staticmethod
-    def scrap_genres():
-        soup = LoyalBooks._get_soup(
-            LoyalBooks._get_html(LoyalBooks.genres_url))
+    @classmethod
+    def scrap_genres(cls):
+        soup = cls._get_soup(cls._get_html(cls.genres_url))
         urls = soup.find("div", {"class": "left"}).find_all("a")
         bucket = {}
         for url in urls:
@@ -242,40 +163,8 @@ class LoyalBooks(AudioBookSource):
             if url.startswith("/genre"):
                 url = "http://www.loyalbooks.com" + url
                 bucket[genre] = url
+        cls._genres = list(bucket.keys())
         return bucket
-
-    @staticmethod
-    def get_genre(genre_id):
-        """
-
-        Args:
-            genre_id:
-
-        Returns:
-            BookGenre
-
-        """
-        genre = ""
-        if LoyalBooks._genres is not None:
-            if genre_id <= len(LoyalBooks._genres):
-                genre = LoyalBooks._genres[genre_id]
-        else:
-            genres = []
-            for genre in LoyalBooks.scrap_genres():
-                genres.append(genre)
-            genres = sorted(genres)
-            genre = genres[genre_id]
-        return BookGenre(genre_id=genre_id, name=genre)
-
-    @staticmethod
-    def get_genre_id(genre):
-        if LoyalBooks._genres is not None:
-            return str(LoyalBooks._genres.index(genre))
-        genres = []
-        for gen in LoyalBooks.scrap_genres():
-            genres.append(gen)
-        genres = sorted(genres)
-        return str(genres.index(genre))
 
     @property
     def genre_pages(self):
@@ -340,10 +229,10 @@ class LoyalBooks(AudioBookSource):
     def genres(self):
         if LoyalBooks._genres is None:
             try:
-                LoyalBooks._genres = list(LoyalBooks.genre_pages.keys())
+                LoyalBooks._genres = list(self.genre_pages.keys())
             except Exception as e:
-                LoyalBooks._genres = ['Advice', 'Instruction', 'Ancient ' \
-                                                               'Texts',
+                LoyalBooks._genres = ['Advice', 'Instruction',
+                                      'Ancient Texts',
                                       'Biography', 'Memoirs', 'Languages',
                                       'Myths/Legends', 'Holiday', 'Art',
                                       'Politics', 'Short stories', 'Romance',
@@ -365,13 +254,14 @@ class LoyalBooks(AudioBookSource):
                                       'Philosophy', 'Mystery']
         return sorted(self._genres) or []
 
-    def _parse_book_div(self, book):
+    @classmethod
+    def _parse_book_div(cls, book):
         try:
-            url = self.base_url + book.find("a")[
+            url = cls.base_url + book.find("a")[
                 "href"].strip()
             img = book.find("img")
             if img:
-                img = self.base_url + img["src"].strip()
+                img = cls.base_url + img["src"].strip()
             name = book.find("b")
             if name:
                 name = name.text.strip()
@@ -410,19 +300,19 @@ class LoyalBooks(AudioBookSource):
             pass  # probably an add
         return None
 
-    def scrap_by_genre(self, genre, limit=-1, offset=0):
+    @classmethod
+    def scrap_by_genre(cls, genre, limit=-1, offset=0):
         """
-
         Generator, yields AudioBook objects
-
-        Args:
-            genre:
-            limit:
-            offset:
         """
-        url = self.genre_pages[genre] + "?page=" + str(offset)
+        if genre not in cls._genre_pages:
+            cls._genre_pages = cls.scrap_genres()
+        if genre not in cls._genre_pages:
+            return
+
+        url = cls._genre_pages[genre] + "?page=" + str(offset)
         limit = int(limit)
-        soup = self._get_soup(self._get_html(url))
+        soup = cls._get_soup(cls._get_html(url))
         el = soup.find("table", {"class": "layout2-blue"})
         if el is None:
             el = soup.find("table", {"class": "layout3"})
@@ -432,12 +322,11 @@ class LoyalBooks(AudioBookSource):
             books = el.find_all("td", {"class": "layout3"})
 
         for book in books:
-            book = self._parse_book_div(book)
+            book = cls._parse_book_div(book)
             if book is None:
                 continue
-            book._genres = [BookGenre(name=genre, url=self.genre_pages[genre],
-                                      genre_id=self.get_genre_id(
-                                          genre)).as_json],
+            book._genres = [BookGenre(name=genre, url=cls._genre_pages[genre],
+                                      genre_id=cls.get_genre_id(genre)).as_json],
             yield book
 
         # check if last page reached
@@ -450,30 +339,25 @@ class LoyalBooks(AudioBookSource):
             return
 
         # crawl next page
-        for book in self.scrap_by_genre(genre, offset + 1, limit):
+        for book in cls.scrap_by_genre(genre, offset + 1, limit):
             yield book
 
-    def scrap_popular(self, limit=-1, offset=0):
+    @classmethod
+    def scrap_popular(cls, limit=-1, offset=0):
         """
-
         Generator, yields AudioBook objects
-
-        Args:
-            limit:
-            offset:
         """
-        soup = self._get_soup(self._get_html(self.popular_url))
+        soup = cls._get_soup(cls._get_html(cls.popular_url))
         books = soup.find(summary="Audio books").find_all("td")
         for b in books:
-            b = self._parse_book_div(b)
+            b = cls._parse_book_div(b)
             if b is not None:
                 yield b
 
-    @staticmethod
-    def search_audiobooks(since=None, author=None, title=None, genre=None,
+    @classmethod
+    def search_audiobooks(cls, since=None, author=None, title=None, genre=None,
                           limit=25):
         """
-
         Args:
             since: a UNIX timestamp; returns all projects cataloged since that time
             author: all records by that author last name
@@ -486,13 +370,10 @@ class LoyalBooks(AudioBookSource):
         query = ""
         if title:
             query += title + " "
-
         if genre:
             query += genre + " "
-
         if author:
             query += author + " "
-
         ## TODO find out how to get callback and nocache values
         """
         import requests
@@ -531,29 +412,14 @@ class LoyalBooks(AudioBookSource):
 
         return []
 
-    @staticmethod
-    def get_audiobook(book_id):
-        """
-
-        Args:
-            book_id:
-
-        Returns:
-            AudioBook
-
-        """
-        url = 'http://www.loyalbooks.com/book/' + book_id
-        book = LoyalBooksAudioBook(url=url)
-        return book
+    @classmethod
+    def get_audiobook(cls, book_id):
+        url = cls.base_url + '/book/' + book_id
+        return LoyalBooksAudioBook(url=url)
 
     def scrap_all_audiobooks(self, limit=-1, offset=0):
         """
-
         Generator, yields AudioBook objects
-
-        Args:
-            limit:
-            offset:
         """
         for genre in self.genres:
             for book in self.scrap_by_genre(genre, limit, offset):

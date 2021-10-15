@@ -4,7 +4,7 @@ from rapidfuzz import process
 from audiobooker.exceptions import UnknownAuthorIdException, \
     UnknownBookIdException, ScrappingError, UnknownGenreIdException, \
     UnknownAuthorException, UnknownBookException, UnknownGenreException
-from audiobooker import AudioBook, BookAuthor, session
+from audiobooker import AudioBook, BookAuthor, session, BookGenre
 from audiobooker.utils import random_user_agent
 
 
@@ -15,7 +15,10 @@ class AudioBookSource:
     authors_url = ""
     search_url = ""
     _cache = None
+    _genres = []
+    _genre_pages = {}
 
+    @classmethod
     def populate_cache(self, books=None, threaded=False):
         if self._cache is None:
             if books:
@@ -31,26 +34,7 @@ class AudioBookSource:
 
     @property
     def genres(self):
-        return sorted(['Advice', 'Instruction', 'Ancient Texts',
-                       'Biography', 'Memoirs', 'Languages',
-                       'Myths/Legends', 'Holiday', 'Art',
-                       'Politics', 'Short stories', 'Romance',
-                       'Essay/Short nonfiction', 'Fiction',
-                       'Epistolary fiction', 'Science',
-                       'Nature', 'Dramatic Works',
-                       'Spy stories', 'History', 'Non-fiction',
-                       'Historical Fiction', 'Play', 'Children',
-                       'Satire', 'Humor',
-                       'Classics (antiquity)', 'Travel',
-                       'Religion', 'Adventure', 'Animals',
-                       'Psychology', 'Sea stories',
-                       'Horror/Ghost stories', 'Fantasy',
-                       'Cookery', 'Poetry', 'Self Published',
-                       'Westerns', 'Comedy', 'Music',
-                       'Economics', 'Fairy tales', 'Tragedy',
-                       'Teen/Young adult', 'Literature',
-                       'War stories', 'Science fiction',
-                       'Philosophy', 'Mystery'])
+        return sorted(self._genres) or []
 
     @staticmethod
     def _get_html(url):
@@ -65,141 +49,77 @@ class AudioBookSource:
     def _get_soup(html):
         return BeautifulSoup(html, "html.parser")
 
-    @staticmethod
-    def scrap_popular(limit=-1, offset=0):
-        """
-
-        Generator, yields AudioBook objects
-
-        Args:
-            limit:
-            offset:
-        """
+    @classmethod
+    def scrap_popular(cls, limit=-1, offset=0):
         raise ScrappingError
+
+    @property
+    def genre_pages(self):
+        return self._genre_pages or {}
+
+    @classmethod
+    def scrap_genres(cls):
+        return cls._genre_pages
 
     @staticmethod
     def scrap_all_audiobooks(limit=-1, offset=0):
-        """
-
-        Generator, yields AudioBook objects
-
-        Args:
-            limit:
-            offset:
-        """
         raise ScrappingError
 
-    @staticmethod
-    def scrap_by_genre(genre, limit=-1, offset=0):
-        """
+    @classmethod
+    def scrap_by_genre(cls, genre, limit=-1, offset=0):
+        for book in cls.search_audiobooks(genre=genre):
+            yield book
 
-        Generator, yields AudioBook objects
-
-        Args:
-            genre:
-            limit:
-            offset:
-        """
-        raise ScrappingError
-
+    @classmethod
     def get_all_audiobooks(self, limit=2000, offset=0):
-        """
-
-        Args:
-            limit:
-            offset:
-
-        Returns:
-            list : list of LibrivoxAudioBook objects
-
-        """
-
         if self._cache is not None:
             return self._cache
         self._cache = [book for book in self.scrap_all_audiobooks(limit,
                                                                   offset)]
         return self._cache
 
-    @staticmethod
-    def get_genre_id(genre):
-        """
+    @classmethod
+    def get_genre_id(cls, genre):
+        if genre in cls._genres:
+            return str(cls._genres.index(genre))
+        genres = []
+        for gen in cls.scrap_genres():
+            genres.append(gen)
+        genres = sorted(genres)
+        return str(genres.index(genre))
 
-        Args:
-            genre:
-
-        Returns:
-            genre_id (str)
-
-        """
-        raise UnknownGenreException
-
-    @staticmethod
-    def get_genre(genre_id):
-        """
-
-        Args:
-            genre_id:
-
-        Returns:
-            BookGenre
-
-        """
-        raise UnknownGenreIdException
+    @classmethod
+    def get_genre(cls, genre_id):
+        if genre_id <= len(cls._genres):
+            genre = cls._genres[genre_id]
+        else:
+            genres = []
+            for genre in cls.scrap_genres():
+                genres.append(genre)
+            genres = sorted(genres)
+            genre = genres[genre_id]
+        return BookGenre(genre_id=genre_id, name=genre)
 
     @staticmethod
     def get_audiobook(book_id):
-        """
-
-        Args:
-            book_id:
-
-        Returns:
-            AudioBook
-
-        """
         raise UnknownBookIdException
 
     @staticmethod
     def get_author(author_id):
-        """
-
-        Args:
-            author_id:
-
-        Returns:
-            BookAuthor
-        """
         raise UnknownAuthorIdException
 
     @staticmethod
     def get_audiobook_id(book):
-        """
-
-        Args:
-            book:
-
-        Returns:
-
-            book_id (str)
-        """
         raise UnknownBookException
 
     @staticmethod
     def get_author_id(author):
-        """
-
-        Args:
-            author_id:
-
-        Returns:
-            author id (str)
-        """
         raise UnknownAuthorException
 
+    @classmethod
     def search_audiobooks(self, since=None, author=None, title=None,
                           genre=None, limit=25):
         """
-
         Args:
             since: a UNIX timestamp; returns all projects cataloged since that time
             author: all records by that author last name
@@ -226,47 +146,3 @@ class AudioBookSource:
                 match = alll[choices.index(match)]
                 yield match
                 alll.remove(match)
-
-
-if __name__ == "__main__":
-    # read from csv or something
-    streams = ['Aldous Huxley, Brave New World, '
-               'https://1fizorq.oloadcdn.net/dl/l/lhcTuuSF1qQv_hV0/Q3JE4LxtblQ/16+-+Brave+New+World+-+Aldous+Huxley+-+1932.mp3?mime=true',
-               'Arthur C. Clarke, Rendezvous with Rama, '
-               'https://1fizors.oloadcdn.net/dl/l/-3TKoZ6X1GdzknSE/bPk3Nk2bvCs/14+-+Rendezvous+With+Rama+-+Arthur+C+Clarke+-+1973.mp3?mime=true',
-               'Philip K. Dick, Do Androids Dream of Electric Sheep, '
-               'https://1fizoro.oloadcdn.net/dl/l/PvHcbH-InPYzh6Bq/Yhc2d-us-kA/12+-+Do+Androids+Dream+of+Electric+Sheep+-+Philip+K+Dick+-+1968.mp3?mime=true',
-               'George Orwell, Animal Farm, https://www.youtube.com/watch?v=4Ln-Bfg6Wk0',
-               'George Orwell, 1984, '
-               'https://1fizorp.oloadcdn.net/dl/l/C76B03TG8T9wi-2z/vBhqbIHW5iM/Nineteen+Eighty+Four+-+George+Orwell.mp3?mime=true',
-               'Arthur C. Clarke, 2001 A Space Odyssey, '
-               'https://1fizorm.oloadcdn.net/dl/l/5YLhBL8cXOiOVqDh/-3w7Z_VvYCU/8+-+2001%3B+A+Space+Odyssey+-+Arthur+C+Clarke+-+1968.mp3?mime=true',
-               'Arthur C. Clarke, Childhood’s End, '
-               'https://1fizors.oloadcdn.net/dl/l/FsqNl_M7s_s54OeE/q2HkT0EYx8w/18+-+Childhood%27s+End+-+Arthur+C+Clarke+-+1954.mp3?mime=true',
-               'Robert A. Heinlein, Starshio Troopers, '
-               'https://1fizorn.oloadcdn.net/dl/l/W6xGJG_Ig2l_O7s8/XXegbOEAdz8/9+-+Starship+Troopers+-+Robert+A+Heinlein+-+1959.mp3?mime=true',
-               'Robert A. Heinlein, The Moon is a Harsh Mistress, '
-               'https://1fizorp.oloadcdn.net/dl/l/iHmjhmlTmw5RvaXnF4/8bwjgLgz0o0/19+-+The+Moon+is+a+Harsh+Mistress+-+Robert+A+Heinlein+-+1966.mp3?mime=true'
-               ]
-
-    from pprint import pprint
-
-    book_lib = AudioBookSource()
-
-    for book in streams:
-        author, title, stream = book.split(",")
-
-        audio_book = AudioBook(description="awesome book",
-                               from_data={"title": title,
-                                          "authors": [author],
-                                          "streams": [stream]})
-
-        book_lib.populate_cache([audio_book])
-
-        author = BookAuthor(from_data=author)
-
-    for book in book_lib.search_audiobooks(title="androids", limit=1):
-        print(book.title, book.authors)
-
-    for book in book_lib.search_audiobooks(author="Heinlein", limit=3):
-        pprint(book.as_json)

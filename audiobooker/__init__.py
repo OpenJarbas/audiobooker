@@ -14,17 +14,7 @@ session = CachedSession(backend='memory', expire_after=expire_after)
 
 
 class BookGenre:
-    """
-    """
-
     def __init__(self, name="", genre_id="", url="", from_data=None):
-        """
-
-        Args:
-            name:
-            genre_id:
-            from_data:
-        """
         self.name = name
         self.genre_id = genre_id
         self.url = url
@@ -36,11 +26,6 @@ class BookGenre:
         return {"name": self.name, "id": self.genre_id, "url": self.url}
 
     def from_json(self, json_data):
-        """
-
-        Args:
-            json_data:
-        """
         if isinstance(json_data, str):
             json_data = json.loads(json_data)
         if isinstance(json_data, BookGenre):
@@ -48,40 +33,19 @@ class BookGenre:
         if not isinstance(json_data, dict):
             raise TypeError
         self.name = json_data.get("name", self.name)
-        self.genre_id = json_data.get("id", self.genre_id)
+        self.genre_id = json_data.get("id", self.genre_id) or self.name
         self.url = json_data.get("url", self.url)
 
     def __str__(self):
-        """
-
-        Returns:
-
-        """
         return self.name
 
     def __repr__(self):
-        """
-
-        Returns:
-
-        """
         return "BookGenre(" + str(self) + ", " + self.genre_id + ")"
 
 
 class BookAuthor:
-    """
-    """
-
     def __init__(self, first_name="", last_name="", author_id="", url="",
                  from_data=None):
-        """
-
-        Args:
-            first_name:
-            last_name:
-            author_id:
-            from_data:
-        """
         self.first_name = first_name
         self.last_name = last_name
         self.first_name, self.last_name = self.normalize_name()
@@ -98,11 +62,6 @@ class BookAuthor:
         return first_name, last_name
 
     def from_json(self, json_data):
-        """
-
-        Args:
-            json_data:
-        """
         if isinstance(json_data, str):
             try:
                 json_data = json.loads(json_data)
@@ -125,41 +84,16 @@ class BookAuthor:
                 "id": self.author_id, "url": self.url}
 
     def __str__(self):
-        """
-
-        Returns:
-
-        """
         return (self.first_name + " " + self.last_name).strip()
 
     def __repr__(self):
-        """
-
-        Returns:
-
-        """
         return "BookAuthor(" + str(self) + ", " + self.author_id + ")"
 
 
 class AudioBook:
-
-
     def __init__(self, title="", authors=None, description="", genres=None,
                  book_id="", runtime=0, url="", img="", language='english',
                  from_data=None, stream_list=None):
-        """
-
-        Args:
-            title:
-            authors:
-            description:
-            genres:
-            book_id:
-            runtime:
-            language:
-            from_data:
-        """
-
         self.img = img
         self.url = url
         self.title = title
@@ -170,9 +104,15 @@ class AudioBook:
         self.runtime = runtime
         self.lang = language.lower()
         self._stream_list = stream_list or []
+        if not self.book_id and "/" in self.url:
+            self.book_id = self.url.split("/")[-1]
         if from_data:
             self.from_json(from_data)
         self.raw = from_data or {}
+        try:
+            self.from_page()
+        except:
+            pass
 
     def calc_runtime(self, data=None):
         raise UnknownDurationError
@@ -199,55 +139,27 @@ class AudioBook:
 
     @property
     def description(self):
-        """
-
-        Returns:
-
-        """
         return self._description.strip()
 
     @property
     def streamer(self):
-        """
-
-        """
-        if self._stream_list is not None:
-            return [s for s in self._stream_list]
-        return []
+        for s in self._stream_list:
+            yield s
 
     @property
     def streams(self):
-        """
-
-        Returns:
-
-        """
         return [s for s in self.streamer]
 
     def play_sox(self):
-        """
-
-        """
         self.play("play %1")
 
     def play_mplayer(self):
-        """
-
-        """
         self.play("mplayer %1")
 
     def play_vlc(self):
-        """
-
-        """
         self.play("cvlc %1 --play-and-exit")
 
     def play(self, cmd="cvlc %1 --play-and-exit"):
-        """
-
-        Args:
-            cmd:
-        """
         for stream_url in self.streamer:
             print("playing", stream_url)
             if isinstance(cmd, str):
@@ -263,11 +175,6 @@ class AudioBook:
 
     @property
     def authors(self):
-        """
-
-        Returns:
-
-        """
         authors = []
         for a in self._authors:
             if isinstance(a, str):
@@ -281,11 +188,6 @@ class AudioBook:
 
     @property
     def genres(self):
-        """
-
-        Returns:
-
-        """
         return [BookGenre(from_data=a) for a in self._genres]
 
     @property
@@ -300,15 +202,10 @@ class AudioBook:
         bucket["id"] = self.book_id
         bucket["runtime"] = self.runtime
         bucket["language"] = self.lang
-        bucket["streams"] = [s for s in self.streamer]
+        bucket["streams"] = self.streams
         return bucket
 
     def from_json(self, json_data):
-        """
-
-        Args:
-            json_data:
-        """
         if isinstance(json_data, str):
             json_data = json.loads(json_data)
         if not isinstance(json_data, dict):
@@ -324,25 +221,17 @@ class AudioBook:
         self._authors = self._authors or [json_data.get("author", "")]
         self._description = json_data.get("description", self._description)
         self._genres = json_data.get("genres", self._genres)
-        self.book_id = json_data.get("id", self.book_id)
+        self.book_id = json_data.get("id")
         self.runtime = json_data.get("runtime", self.runtime)
         self.lang = json_data.get('language',
                                   json_data.get('lang', self.lang)).lower()
         self._stream_list = json_data.get("streams", self._stream_list)
         self.raw = json_data
+        if not self.book_id and "/" in self.url:
+            self.book_id = self.url.split("/")[-1]
 
     def __str__(self):
-        """
-
-        Returns:
-
-        """
         return self.title
 
     def __repr__(self):
-        """
-
-        Returns:
-
-        """
         return "AudioBook(" + str(self) + ", " + self.book_id + ")"
