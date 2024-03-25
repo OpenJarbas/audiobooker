@@ -3,9 +3,9 @@ from setuptools import setup
 setup(
     name='audiobooker',
     version='0.3.1',
-    packages=['audiobooker', 'audiobooker.scrappers', 'audiobooker.utils'],
+    packages=['audiobooker', 'audiobooker.scrappers'],
     install_requires=["requests", "bs4", "feedparser", "rapidfuzz",
-                      "requests-cache"],
+                      "requests-cache", "site-map-parser"],
     url='https://github.com/OpenJarbas/audiobooker',
     license='MIT',
     author='jarbasAI',
