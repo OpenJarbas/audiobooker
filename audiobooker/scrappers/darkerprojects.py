@@ -10,6 +10,17 @@ class DarkerProjectsAudioBook(AudioBook):
 
     def parse_page(self):
         streams = []
+        img = self.img
+        desc = self.description
+
+        for d in self.soup.find("div", {"class": "inner-entry-content"}).find_all("i"):
+            desc = d.text
+            break
+
+        for url in self.soup.find_all("img")[1:]:
+            img = url["src"]
+            break
+
         for url in self.soup.find_all("a"):
             if not url.get("href"):
                 continue
@@ -17,10 +28,10 @@ class DarkerProjectsAudioBook(AudioBook):
                 if url["href"] not in streams:
                     streams.append(url["href"])
         title = self.soup.find("title").text
-        img = self.img
 
         return {"title": title.strip(),
                 "streams": streams,
+                "description": desc,
                 "img": img}
 
     def from_page(self):
