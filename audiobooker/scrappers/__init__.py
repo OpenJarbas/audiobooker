@@ -1,10 +1,11 @@
-from bs4 import BeautifulSoup
 from threading import Thread
+
+from bs4 import BeautifulSoup
 from rapidfuzz import process
+
+from audiobooker.base import session, BookTag
 from audiobooker.exceptions import UnknownAuthorIdException, \
-    UnknownBookIdException, ScrappingError, UnknownGenreIdException, \
-    UnknownAuthorException, UnknownBookException, UnknownGenreException
-from audiobooker import AudioBook, BookAuthor, session, BookTag
+    UnknownBookIdException, ScrappingError, UnknownAuthorException, UnknownBookException
 from audiobooker.utils import random_user_agent
 
 
@@ -43,7 +44,7 @@ class AudioBookSource:
             return session.get(url, headers={'User-Agent': user_agent}).text
         except Exception as e:
             return session.get(url, verify=False,
-                                headers={'User-Agent': user_agent}).text
+                               headers={'User-Agent': user_agent}).text
 
     @staticmethod
     def _get_soup(html):

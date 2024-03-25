@@ -1,7 +1,8 @@
 import feedparser
-from audiobooker import AudioBook, BookTag, BookAuthor
-from audiobooker.scrappers import AudioBookSource
 from sitemapparser import SiteMapParser
+
+from audiobooker.base import AudioBook, BookTag, BookAuthor
+from audiobooker.scrappers import AudioBookSource
 
 
 class LoyalBooksAudioBook(AudioBook):
@@ -62,7 +63,7 @@ class LoyalBooksAudioBook(AudioBook):
                 tag = a.text.strip()
                 tag_id = LoyalBooks.get_tag_id(tag)
                 tags.append(BookTag(name=tag, url=url,
-                                      tag_id=tag_id))
+                                    tag_id=tag_id))
 
         img = self.soup.find("img", {"itemprop": "image", "class": "cover"})
         if img:
@@ -232,26 +233,26 @@ class LoyalBooks(AudioBookSource):
                 LoyalBooks._tags = list(self.tag_pages.keys())
             except Exception as e:
                 LoyalBooks._tags = ['Advice', 'Instruction',
-                                      'Ancient Texts',
-                                      'Biography', 'Memoirs', 'Languages',
-                                      'Myths/Legends', 'Holiday', 'Art',
-                                      'Politics', 'Short stories', 'Romance',
-                                      'Essay/Short nonfiction', 'Fiction',
-                                      'Epistolary fiction', 'Science',
-                                      'Nature', 'Dramatic Works',
-                                      'Spy stories', 'History', 'Non-fiction',
-                                      'Historical Fiction', 'Play', 'Children',
-                                      'Satire', 'Humor',
-                                      'Classics (antiquity)', 'Travel',
-                                      'Religion', 'Adventure', 'Animals',
-                                      'Psychology', 'Sea stories',
-                                      'Horror/Ghost stories', 'Fantasy',
-                                      'Cookery', 'Poetry', 'Self Published',
-                                      'Westerns', 'Comedy', 'Music',
-                                      'Economics', 'Fairy tales', 'Tragedy',
-                                      'Teen/Young adult', 'Literature',
-                                      'War stories', 'Science fiction',
-                                      'Philosophy', 'Mystery']
+                                    'Ancient Texts',
+                                    'Biography', 'Memoirs', 'Languages',
+                                    'Myths/Legends', 'Holiday', 'Art',
+                                    'Politics', 'Short stories', 'Romance',
+                                    'Essay/Short nonfiction', 'Fiction',
+                                    'Epistolary fiction', 'Science',
+                                    'Nature', 'Dramatic Works',
+                                    'Spy stories', 'History', 'Non-fiction',
+                                    'Historical Fiction', 'Play', 'Children',
+                                    'Satire', 'Humor',
+                                    'Classics (antiquity)', 'Travel',
+                                    'Religion', 'Adventure', 'Animals',
+                                    'Psychology', 'Sea stories',
+                                    'Horror/Ghost stories', 'Fantasy',
+                                    'Cookery', 'Poetry', 'Self Published',
+                                    'Westerns', 'Comedy', 'Music',
+                                    'Economics', 'Fairy tales', 'Tragedy',
+                                    'Teen/Young adult', 'Literature',
+                                    'War stories', 'Science fiction',
+                                    'Philosophy', 'Mystery']
         return sorted(self._tags) or []
 
     @classmethod
@@ -326,7 +327,7 @@ class LoyalBooks(AudioBookSource):
             if book is None:
                 continue
             book._tags = [BookTag(name=tag, url=cls._tag_pages[tag],
-                                    tag_id=cls.get_tag_id(tag)).as_json],
+                                  tag_id=cls.get_tag_id(tag)).as_json],
             yield book
 
         # check if last page reached

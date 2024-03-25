@@ -1,5 +1,6 @@
 import requests
-from audiobooker import AudioBook, BookAuthor
+
+from audiobooker.base import AudioBook, BookAuthor
 from audiobooker.scrappers import AudioBookSource
 
 

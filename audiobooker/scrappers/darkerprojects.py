@@ -1,7 +1,7 @@
 import requests
 from sitemapparser import SiteMapParser
 
-from audiobooker import AudioBook
+from audiobooker.base import AudioBook
 from audiobooker.scrappers import AudioBookSource
 
 

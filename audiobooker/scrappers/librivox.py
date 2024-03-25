@@ -1,5 +1,6 @@
 import feedparser
-from audiobooker import AudioBook, BookTag, BookAuthor, session
+
+from audiobooker.base import AudioBook, BookAuthor, session
 from audiobooker.scrappers import AudioBookSource
 
 

@@ -1,5 +1,6 @@
 import requests
-from audiobooker import AudioBook, BookTag, BookAuthor
+
+from audiobooker.base import AudioBook
 from audiobooker.scrappers import AudioBookSource
 
 
@@ -104,13 +105,13 @@ class StoryNory(AudioBookSource):
                 desc = p.text
             try:
                 book = StoryNoryAudioBook(description=desc,
-                                         url=url,
-                                         title=img["alt"],
-                                         img=img["data-ezsrc"])
+                                          url=url,
+                                          title=img["alt"],
+                                          img=img["data-ezsrc"])
             except:
                 book = StoryNoryAudioBook(description=desc,
-                                         url=url,
-                                         img=img["src"])
+                                          url=url,
+                                          img=img["src"])
             book.from_page()  # parse book url for streams
             yield book
 
@@ -139,11 +140,6 @@ class StoryNory(AudioBookSource):
 
 
 if __name__ == "__main__":
-    from pprint import pprint
-   # for book in StoryNory.search_audiobooks(title="Dark Tower"):
-   #     pprint(book.as_json)
-
     scraper = StoryNory()
     for book in scraper.scrap_popular():
         print(book.as_json)
-

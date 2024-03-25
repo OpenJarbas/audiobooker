@@ -1,7 +1,8 @@
 import requests
-from audiobooker import AudioBook, BookTag, BookAuthor
-from audiobooker.scrappers import AudioBookSource
 from sitemapparser import SiteMapParser
+
+from audiobooker.base import AudioBook, BookAuthor
+from audiobooker.scrappers import AudioBookSource
 
 
 class GoldenAudioBooksAudioBook(AudioBook):

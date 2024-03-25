@@ -1,5 +1,6 @@
 import requests
-from audiobooker import AudioBook, BookTag, BookAuthor
+
+from audiobooker.base import AudioBook, BookAuthor
 from audiobooker.scrappers import AudioBookSource
 
 
@@ -50,7 +51,7 @@ class AudioAnarchyAudioBook(AudioBook):
 class AudioAnarchy(AudioBookSource):
     base_url = "http://www.audioanarchy.org"
     _tags = ["Anarchy"]
-    _tag_pages = {"Anarchy":'http://www.audioanarchy.org'}
+    _tag_pages = {"Anarchy": 'http://www.audioanarchy.org'}
 
     @staticmethod
     def _parse_page(html, limit=-1):
@@ -92,9 +93,10 @@ class AudioAnarchy(AudioBookSource):
 
 if __name__ == "__main__":
     from pprint import pprint
-   # for book in AudioAnarchy.search_audiobooks(title="Dark Tower"):
-   #     pprint(book.as_json)
+
+    # for book in AudioAnarchy.search_audiobooks(title="Dark Tower"):
+    #     pprint(book.as_json)
 
     scraper = AudioAnarchy()
-    for book in scraper.scrap_popular():
+    for book in scraper.scrap_all_audiobooks():
         pprint(book.as_json)

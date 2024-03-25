@@ -1,7 +1,8 @@
 import requests
-from audiobooker import AudioBook, BookTag, BookAuthor
-from audiobooker.scrappers import AudioBookSource
 from sitemapparser import SiteMapParser
+
+from audiobooker.base import AudioBook
+from audiobooker.scrappers import AudioBookSource
 
 
 class ThoughtAudioAudioBook(AudioBook):
@@ -96,7 +97,7 @@ class ThoughtAudio(AudioBookSource):
         return cls._parse_search_page(html)
 
     @classmethod
-    def get_audiobook(cls,book_id):
+    def get_audiobook(cls, book_id):
         url = cls.base_url + '/' + book_id
         book = ThoughtAudioAudioBook(url=url)
         return book
@@ -120,4 +121,3 @@ if __name__ == "__main__":
 
     for book in scraper.scrap_all_audiobooks():
         pprint(book.as_json)
-
