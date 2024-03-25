@@ -1,6 +1,7 @@
 import requests
 from audiobooker import AudioBook, BookTag, BookAuthor
 from audiobooker.scrappers import AudioBookSource
+from sitemapparser import SiteMapParser
 
 
 class ThoughtAudioAudioBook(AudioBook):
@@ -11,6 +12,13 @@ class ThoughtAudioAudioBook(AudioBook):
         for url in self.soup.find_all("a"):
             if url["href"].endswith(".mp3"):
                 streams.append(url["href"])
+        for url in self.soup.find_all("iframe"):
+            if "youtube" not in url["src"]:
+                continue
+            streams.append(
+                url["src"].split("?feature=oembed")[0].
+                replace("https://www.youtube.com/embed/", "https://www.youtube.com/watch?v=")
+            )
         title = self.soup.find("title").text
         img = self.img
 
@@ -95,15 +103,21 @@ class ThoughtAudio(AudioBookSource):
 
     @classmethod
     def scrap_all_audiobooks(cls, limit=-1, offset=0):
-        return cls.scrap_popular()
+        sm = SiteMapParser('http://thoughtaudio.com/wp-sitemap-posts-post-1.xml')  # reads /sitemap.xml
+        urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
+        for url in urls:
+            url = str(url)
+            title = url.strip("/").split("/")[-1].replace("-", " ").title()
+            yield ThoughtAudioAudioBook(url=url, title=title)
 
 
 if __name__ == "__main__":
     from pprint import pprint
-   # for book in ThoughtAudio.search_audiobooks(title="Dark Tower"):
-   #     pprint(book.as_json)
 
     scraper = ThoughtAudio()
     for book in scraper.search_audiobooks(title="machine"):
+        pprint(book.as_json)
+
+    for book in scraper.scrap_all_audiobooks():
         pprint(book.as_json)
 
