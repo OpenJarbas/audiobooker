@@ -1,6 +1,7 @@
 import requests
 from audiobooker import AudioBook, BookTag, BookAuthor
 from audiobooker.scrappers import AudioBookSource
+from sitemapparser import SiteMapParser
 
 
 class GoldenAudioBooksAudioBook(AudioBook):
@@ -69,11 +70,14 @@ class GoldenAudioBooks(AudioBookSource):
     @classmethod
     def scrap_tags(cls):
         bucket = {}
-        soup = cls._get_soup(cls._get_html(cls.base_url))
-        for tag in soup.find("aside",
-                               {"class": "widget widget_categories"}). \
-                find_all("a"):
-            bucket[tag.text] = tag["href"]
+        sm = SiteMapParser('https://goldenaudiobook.co/category-sitemap.xml')  # reads /sitemap.xml
+        urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
+        for url in urls:
+            url = str(url)
+            title = url.strip("/").split("/")[-1].replace("-", " ").title()
+
+            bucket[title] = url
+
         return bucket
 
     @property
@@ -194,9 +198,19 @@ class GoldenAudioBooks(AudioBookSource):
 
     @classmethod
     def scrap_all_audiobooks(cls, limit=-1, offset=0):
-        for tag in cls._tags:
-            for book in cls.scrap_by_tag(tag, limit, offset):
-                yield book
+        sm = SiteMapParser('https://goldenaudiobook.co/post-sitemap.xml')  # reads /sitemap.xml
+        urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
+        for url in urls:
+            url = str(url)
+            title = url.strip("/").split("/")[-1].replace("-", " ").title()
+            yield GoldenAudioBooksAudioBook(url=url, title=title)
+
+        sm = SiteMapParser('https://goldenaudiobook.co/post-sitemap2.xml')  # reads /sitemap.xml
+        urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
+        for url in urls:
+            url = str(url)
+            title = url.strip("/").split("/")[-1].replace("-", " ").title()
+            yield GoldenAudioBooksAudioBook(url=url, title=title)
 
 
 if __name__ == "__main__":
@@ -207,8 +221,9 @@ if __name__ == "__main__":
     for a in book.authors:
         # print(a.as_json)
         pass
+
     tags = GoldenAudioBooks.scrap_tags()
-    # print(tags)
+    print(tags)
 
     for book in GoldenAudioBooks.search_audiobooks(author="Lovecraft"):
         pprint(book.as_json)
