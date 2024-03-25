@@ -1,4 +1,6 @@
 import requests
+from sitemapparser import SiteMapParser
+
 from audiobooker import AudioBook
 from audiobooker.scrappers import AudioBookSource
 
@@ -9,6 +11,8 @@ class DarkerProjectsAudioBook(AudioBook):
     def parse_page(self):
         streams = []
         for url in self.soup.find_all("a"):
+            if not url.get("href"):
+                continue
             if url["href"].endswith(".mp3"):
                 if url["href"] not in streams:
                     streams.append(url["href"])
@@ -33,25 +37,6 @@ class DarkerProjectsAudioBook(AudioBook):
 
 class DarkerProjects(AudioBookSource):
     base_url = "http://darkerprojects.com"
-    _tag_pages = {'Autumn': 'http://darkerprojects.com/autumn/',
-                  "Batman: No Man's Land": 'http://darkerprojects.com/batman-no-mans-land/',
-                  'Behind The Scenes': 'http://darkerprojects.com/behind-the-scenes/',
-                  'Dark Matter': 'http://darkerprojects.com/dark-matter/',
-                  'Darker Projects: Uncovered': 'http://darkerprojects.com/dp-uncovered/',
-                  'Doctor Who': 'http://darkerprojects.com/doctor-who/',
-                  'Five Minute Fears': 'http://darkerprojects.com/five-minute-fears/',
-                  'He-Man: The Parody': 'http://darkerprojects.com/he-man-the-parody/',
-                  'Madness': 'http://darkerprojects.com/madness/',
-                  'Night Terrors': 'http://darkerprojects.com/night-terrors/',
-                  'Other Voices': 'http://darkerprojects.com/other-voices/',
-                  'Outer Limits': 'http://darkerprojects.com/outer-limits/',
-                  'Quantum Leap': 'http://darkerprojects.com/quantum-leap/',
-                  'Quantum Retribution': 'http://darkerprojects.com/quantum-retribution/',
-                  'Star Trek: Lost Frontier': 'http://darkerprojects.com/lostfrontier/',
-                  'Star Trek: Section 31': 'http://darkerprojects.com/section31/',
-                  'Tales From The Museum': 'http://darkerprojects.com/tales-from-the-museum/',
-                  'Tales From The Museum: The Beginning': 'http://darkerprojects.com/tales-from-the-museum-the-beginning/',
-                  'The Falcon Banner': 'http://darkerprojects.com/the-falcon-banner/'}
 
     @classmethod
     def _parse_page(cls, html, limit=-1):
@@ -89,13 +74,14 @@ class DarkerProjects(AudioBookSource):
 
     @classmethod
     def scrap_tags(cls):
-        html = requests.get(cls.base_url).text
-        soup = cls._get_soup(html)
-        collections = soup.find("div", {"class": "widget-area"})
-        for ul in collections.find_all("li"):
-            a = ul.find("a")
-            cls._tag_pages[a.text] = a["href"]
-        return cls._tag_pages
+        bucket = {}
+        sm = SiteMapParser('https://darkerprojects.com/wp-sitemap-taxonomies-category-1.xml')  # reads /sitemap.xml
+        urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
+        for url in urls:
+            url = str(url)
+            title = url.strip("/").split("/")[-1].replace("-", " ").title()
+            bucket[title] = url
+        return bucket
 
     @classmethod
     def scrap_collections(cls, limit=-1, offset=0):
@@ -112,8 +98,9 @@ class DarkerProjects(AudioBookSource):
                     streams += book.streams
                 streams.reverse()
                 return DarkerProjectsAudioBook(title=tag,
-                                              stream_list=streams,
-                                              url=url)
+                                               stream_list=streams,
+                                               url=url)
+
     @classmethod
     def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
                           limit=25):
@@ -135,17 +122,22 @@ class DarkerProjects(AudioBookSource):
 
     @classmethod
     def scrap_all_audiobooks(cls, limit=-1, offset=0):
-        return cls.scrap_collections()
+        sm = SiteMapParser('https://darkerprojects.com/wp-sitemap-posts-post-1.xml')  # reads /sitemap.xml
+        urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
+        for url in urls:
+            url = str(url)
+            title = url.strip("/").split("/")[-1].replace("-", " ").title()
+            book = DarkerProjectsAudioBook(url=url, title=title)
+            book.from_page()
+            yield book
 
 
 if __name__ == "__main__":
     from pprint import pprint
 
-    # for book in DarkerProjects.search_audiobooks(title="Dark Tower"):
-    #     pprint(book.as_json)
-
     scraper = DarkerProjects()
+
     print(scraper.scrap_tags())
-    exit()
-    for book in scraper.scrap_collections():
+
+    for book in scraper.scrap_all_audiobooks():
         pprint(book.as_json)
