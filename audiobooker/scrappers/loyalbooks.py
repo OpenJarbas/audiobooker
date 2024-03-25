@@ -1,7 +1,7 @@
 import feedparser
 from audiobooker import AudioBook, BookTag, BookAuthor
 from audiobooker.scrappers import AudioBookSource
-from audiobooker.utils.google_search import GoogleSearch
+from sitemapparser import SiteMapParser
 
 
 class LoyalBooksAudioBook(AudioBook):
@@ -147,10 +147,10 @@ class LoyalBooksAudioBook(AudioBook):
 
 
 class LoyalBooks(AudioBookSource):
-    base_url = "http://www.loyalbooks.com"
-    popular_url = "http://www.loyalbooks.com"
-    tags_url = "http://www.loyalbooks.com/tag-menu"
-    search_url = "http://www.loyalbooks.com/search?q=%s"
+    base_url = "https://www.loyalbooks.com"
+    popular_url = "https://www.loyalbooks.com"
+    tags_url = "https://www.loyalbooks.com/tag-menu"
+    search_url = "https://www.loyalbooks.com/search?q=%s"
 
     @classmethod
     def scrap_tags(cls):
@@ -367,50 +367,16 @@ class LoyalBooks(AudioBookSource):
         Yields:
             AudioBook objects
         """
-        query = ""
-        if title:
-            query += title + " "
-        if tag:
-            query += tag + " "
-        if author:
-            query += author + " "
-        ## TODO find out how to get callback and nocache values
-        """
-        import requests
-        url = LoyalBooks.search_url % query
-        cx = "003017802411926626169:x3dul6qfjls"
-        session = requests.Session()
-        session.get(url)
-        cx_token = session.get(
-            "https://cse.google.com/cse.js?cx=003017802411926626169"
-            ":x3dul6qfjls").text.split('"cse_token": "')[1].split('",')[0]
-        params = {"rsz": "filtered_cse",
-                  "num": "10",
-                  "hl": "en",
-                  "source": "gcsc",
-                  "gss": ".com",
-                  "cx": cx,
-                  "q": query,
-                  "safe": "off",
-                  "cse_tok": cx_token,
-                  "sort": ""#,
-                  #"callback": "google.search.cse.api15358",
-                  #"nocache": "1546515546857"
-                  }
-        print(session.get("https://cse.google.com/cse/element/v1",
-                          data=params))
-        """
-
-        query += " site:" + LoyalBooks.base_url
-
-        for url in GoogleSearch.search(query):
-            if "www.loyalbooks.com/book/" not in url:
+        sm = SiteMapParser(f"{LoyalBooks.base_url}/sitemap.xml")  # reads /sitemap.xml
+        for url in sm.get_urls():
+            url = str(url)
+            if not url.startswith(f"{LoyalBooks.base_url}/book/"):
                 continue
-            if url.endswith("/feed"):
-                continue
-            yield LoyalBooksAudioBook(url=url)
-
-        return []
+            t = url.split("/")[-1].replace("-", " ").lower()
+            if author and author.lower() in t:
+                yield LoyalBooksAudioBook(url=url, title=t)
+            elif title and title.lower() in t:
+                yield LoyalBooksAudioBook(url=url, title=t)
 
     @classmethod
     def get_audiobook(cls, book_id):
@@ -421,9 +387,14 @@ class LoyalBooks(AudioBookSource):
         """
         Generator, yields AudioBook objects
         """
-        for tag in self.tags:
-            for book in self.scrap_by_tag(tag, limit, offset):
-                yield book
+        sm = SiteMapParser('https://www.loyalbooks.com/sitemap.xml')  # reads /sitemap.xml
+        urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
+        for url in urls:
+            url = str(url)
+            if not url.startswith("https://www.loyalbooks.com/book/"):
+                continue
+            title = url.split("/")[-1].replace("-", " ").title()
+            yield LoyalBooksAudioBook(url=url, title=title)
 
 
 if __name__ == "__main__":

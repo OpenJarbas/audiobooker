@@ -1,17 +1,8 @@
 from audiobooker import AudioBook, BookAuthor
 from audiobooker.scrappers import AudioBookSource
-from audiobooker.utils.google_search import GoogleSearch
 
 from pprint import pprint
 
-query = "lovecraft audio drama"
-count = 3
-google = GoogleSearch()
-print("Fetching first " + str(count) + " results for \"" + query + "\"...")
-for result in google.search(query, count):
-    print("result #", result.num, " of ", result.total)
-    print(result.url)
-    print(result.title)
 
 # not real streams
 # read from csv or something
