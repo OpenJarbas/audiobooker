@@ -8,14 +8,16 @@ from audiobooker.utils import get_soup, normalize_name
 
 
 @dataclass
-class GoldenAudioBooksAudioBook:
+class SharedAudioBook:
     url: str
+    image: str = ""
 
     def parse_page(self):
         soup = get_soup(self.url)
-        title = soup.find("h1", {"class": "title-page"}).text.replace(" Audiobook", "")
-        tags = [t for t in soup.find("span", {"class": "post-meta-category"}).text.split(" ") if len(t) > 2]
-        img = soup.find("figure").find("img")["src"]
+        title = soup.find("h1", {"class": "entry-title"}).text
+        tags = [t for t in soup.find("ul", {"class": "post-categories"}).text.split("\n") if t.strip()]
+
+        img = soup.find_all("img")[-1]["src"]
 
         authors = []
 
@@ -40,21 +42,28 @@ class GoldenAudioBooksAudioBook:
         )
 
 
-class GoldenAudioBooks(AudioBookSource):
-    base_url = "https://goldenaudiobook.co/"
+class SharedAudioBooks(AudioBookSource):
 
-    def iterate_all(self):
-        for u in ['https://goldenaudiobook.co/post-sitemap.xml',
-                  'https://goldenaudiobook.co/post-sitemap2.xml']:
-            sm = SiteMapParser(u)  # reads /sitemap.xml
+    @classmethod
+    def iterate_all(cls, limit=-1, offset=0):
+        sm = SiteMapParser('https://sharedaudiobooks.com/post-sitemap.xml')  # reads /sitemap.xml
+        urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
+        for url in urls:
+            url = str(url)
+            if url == "https://sharedaudiobooks.com/":
+                continue
+            yield SharedAudioBook(url=str(url)).parse_page()
+
+        for i in range(2, 10):
+            sm = SiteMapParser(f'https://sharedaudiobooks.com/post-sitemap{i}.xml')  # reads /sitemap.xml
             urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
             for url in urls:
-                yield GoldenAudioBooksAudioBook(url=str(url)).parse_page()
+                yield SharedAudioBook(url=str(url)).parse_page()
 
 
 if __name__ == "__main__":
     from pprint import pprint
 
-    scraper = GoldenAudioBooks()
+    scraper = SharedAudioBooks()
     for book in scraper.iterate_all():
         pprint(book)

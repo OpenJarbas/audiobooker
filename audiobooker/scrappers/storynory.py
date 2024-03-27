@@ -1,82 +1,71 @@
+from dataclasses import dataclass
+
 import requests
+from sitemapparser import SiteMapParser
 
 from audiobooker.base import AudioBook
+from audiobooker.exceptions import ParseErrorException
 from audiobooker.scrappers import AudioBookSource
+from audiobooker.utils import get_soup, extractor_narrator
 
 
-class StoryNoryAudioBook(AudioBook):
-    base_url = "https://www.storynory.com/"
+@dataclass
+class StoryNoryAudioBook:
+    url: str
+    image: str = ""
 
     def parse_page(self):
+        soup = get_soup(self.url)
         streams = []
-        for url in self.soup.find_all("a"):
-            if url["href"].endswith(".mp3"):
-                if url["href"] not in streams:
-                    streams.append(url["href"])
+        for url in soup.find_all("a"):
+            if not url.get("href"):
+                continue
+            if url.get("download") or url["href"].endswith(".mp3"):
+                url = url["href"]
+                if url.startswith("//"):
+                    url = "https:" + url
+                streams.append(url.strip())
 
-        title = self.soup.find("title").text
-        img = self.soup.find("img")
-        if img.get("data-ezsrc"):
-            img = img["data-ezsrc"]
-        elif img.get("src"):
-            img = img["src"]
+        title = soup.find("title").text.strip().replace(" - Storynory", "")
+        img = soup.find("img")
+        if img and img.get("src"):
+            img = img["src"].strip()
+            if img.startswith("//"):
+                img = "https:" + img
         else:
-            img = self.img
-        print(streams)
-        return {"title": title.strip(),
-                "streams": streams,
-                "img": img}
-
-    def from_page(self):
-        data = self.parse_page()
-        self.title = data["title"]
-        self.img = data.get("img", self.img)
-        self.raw.update(data)
-        self._stream_list = data["streams"]
-
-    def __repr__(self):
-        return "StoryNoryAudioBook(" + str(
-            self) + ", " + self.book_id + ")"
+            img = self.image
+        if not streams:
+            raise ParseErrorException("No streams found")
+        for d in soup.find_all("p"):
+            if d.text.lower().startswith("download"):
+                continue
+            desc = d.text.split("\n")[0][:100]
+            break
+        else:
+            desc = ""
+        return AudioBook(
+            title=title.strip(),
+            description=desc,
+            streams=streams,
+            narrator=extractor_narrator(desc),
+            image=img,
+            language="en"
+        )
 
 
 class StoryNory(AudioBookSource):
-    # TODO categories / tags
-    base_url = "https://www.storynory.com"
 
     @classmethod
-    def _parse_page(cls, html, limit=-1):
-        soup = cls._get_soup(html)
-        for entry in soup.find_all("div", {"class": "bf-item"}):
-            try:
-                a = entry.find("a")
-                img = entry.find("img")
-                book = StoryNoryAudioBook(from_data={
-                    "title": entry.text,
-                    "url": a["href"],
-                    "img": img["src"]
-                })
-                book.from_page()  # parse url
-                yield book
-            except:
-                continue
+    def _parse_search_page(cls, url="https://www.storynory.com",
+                           limit=-1, **params):
+        soup = get_soup(url, **params)
 
-    @classmethod
-    def _parse_search_page(cls, html, limit=-1):
-        soup = cls._get_soup(html)
         for entry in soup.find_all("div", {"class": "panel-body"}):
             try:
                 a = entry.find("a")
                 img = entry.find("img")
-                book = StoryNoryAudioBook(from_data={
-                    "title": a.text,
-                    "description": entry.find("p").text,
-                    "url": a["href"],
-                    "img": img["src"] if img else ""
-                })
-                print(book)
-                book.from_page()  # parse url
-                print(book)
-                yield book
+                yield StoryNoryAudioBook(url=a["href"],
+                                         image= img["src"] if img else "").parse_page()
             except:
                 continue
 
@@ -84,62 +73,29 @@ class StoryNory(AudioBookSource):
             limit -= 1
             next_page = soup.find("li", {"class": "bpn-next-link"})
             if next_page:
-                html = requests.get(next_page.find("a")["href"]).text
-                for ntry in cls._parse_search_page(html, limit=limit):
+                url = next_page.find("a")["href"]
+                for ntry in cls._parse_search_page(url=url, limit=limit, **params):
                     yield ntry
 
-    @classmethod
-    def scrap_popular(cls, limit=-1, offset=0):
-        html = requests.get(cls.base_url).text
-        soup = cls._get_soup(html)
-        for a in soup.find_all("a"):
-            url = a["href"]
-            if not url.startswith("https://www.storynory.com/"):
-                continue
-            img = a.find("img")
-            if not img:
-                continue
-            p = a.find("p")
-            desc = ""
-            if p:
-                desc = p.text
-            try:
-                book = StoryNoryAudioBook(description=desc,
-                                          url=url,
-                                          title=img["alt"],
-                                          img=img["data-ezsrc"])
-            except:
-                book = StoryNoryAudioBook(description=desc,
-                                          url=url,
-                                          img=img["src"])
-            book.from_page()  # parse book url for streams
-            yield book
+    def search(self, query):
+        return self._parse_search_page(params={"s": query})
 
-    @classmethod
-    def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
-                          limit=25):
-        query = ""
-        if title:
-            query += title + " "
-        if tag:
-            query += tag + " "
-        if author:
-            query += author + " "
-        html = requests.get(cls.base_url, params={"s": query}).text
-        return cls._parse_search_page(html)
-
-    @classmethod
-    def get_audiobook(cls, book_id):
-        url = cls.base_url + '/' + book_id
-        book = StoryNoryAudioBook(url=url)
-        return book
-
-    @classmethod
-    def scrap_all_audiobooks(cls, limit=-1, offset=0):
-        return cls.scrap_popular()
+    def iterate_all(self):
+        for u in [
+            'https://www.storynory.com/post-sitemap1.xml',
+            'https://www.storynory.com/post-sitemap2.xml'
+        ]:
+            sm = SiteMapParser(u)  # reads /sitemap.xml
+            urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
+            for url in urls:
+                try:
+                    yield StoryNoryAudioBook(url=str(url)).parse_page()
+                except ParseErrorException:
+                    # not a book, just a blog post
+                    continue
 
 
 if __name__ == "__main__":
     scraper = StoryNory()
-    for book in scraper.scrap_popular():
-        print(book.as_json)
+    for book in scraper.search("snow white"):
+        print(book)

@@ -1,123 +1,85 @@
-import requests
+from dataclasses import dataclass
+
 from sitemapparser import SiteMapParser
 
-from audiobooker.base import AudioBook
+from audiobooker.base import AudioBook, BookAuthor, AudiobookNarrator
 from audiobooker.scrappers import AudioBookSource
+from audiobooker.utils import get_soup, extract_year, normalize_name
 
 
-class ThoughtAudioAudioBook(AudioBook):
-    base_url = "http://thoughtaudio.com/"
+@dataclass
+class ThoughtAudioAudioBook:
+    url: str
 
     def parse_page(self):
+        soup = get_soup(self.url)
         streams = []
-        for url in self.soup.find_all("a"):
+        img = None
+        for url in soup.find_all("a"):
             if url["href"].endswith(".mp3"):
                 streams.append(url["href"])
-        for url in self.soup.find_all("iframe"):
+        for url in soup.find_all("iframe"):
             if "youtube" not in url["src"]:
                 continue
+            vid = url["src"].split("/")[-1].split("?")[0]
+            img = f"https://img.youtube.com/vi/{vid}/0.jpg"
             streams.append(
                 url["src"].split("?feature=oembed")[0].
                 replace("https://www.youtube.com/embed/", "https://www.youtube.com/watch?v=")
             )
-        title = self.soup.find("title").text
-        img = self.img
+        title = soup.find("title").text.split(" – ThoughtAudio")[0].split(": ")[-1]
 
-        return {"title": title.strip(),
-                "streams": streams,
-                "img": img}
+        if not title:
+            title = soup.find("span", {"class": "Text-Head"}).text
 
-    def from_page(self):
-        data = self.parse_page()
-        self.title = data["title"]
-        self.img = data.get("img", self.img)
-        self._stream_list = data["streams"]
-        self.raw.update(data)
+        narrator = None
+        author = None
+        desc = ""
+        for s in soup.find_all("p"):
+            if "WRITTEN BY:" in s.text:
+                name = s.text.split("WRITTEN BY:")[-1]
+                f, l = normalize_name(name)
+                author = BookAuthor(first_name=f, last_name=l)
 
-    def __repr__(self):
-        return "ThoughtAudioAudioBook(" + str(
-            self) + ", " + self.book_id + ")"
+            elif "NARRATED BY:" in s.text:
+                name = s.text.split("NARRATED BY:")[-1]
+                f, l = normalize_name(name)
+                narrator = AudiobookNarrator(first_name=f, last_name=l)
+            elif s.text.strip() and narrator and author:
+                desc = s.text.split("\n")[0]
+                break
+        if not img:
+            pics = soup.find_all("img")
+            if len(pics) > 1:
+                img = pics[1]
+            else:
+                img = pics[0]
+        return AudioBook(
+            title=title.strip(),
+            streams=streams,
+            image=img or "",
+            description=desc,
+            narrator=narrator,
+            year=extract_year(desc),
+            authors=[author] if author else [],
+            tags=["ThoughtAudio"],
+            language="en"
+        )
 
 
 class ThoughtAudio(AudioBookSource):
-    base_url = "http://thoughtaudio.com"
-    _tags = ["Philosophy"]
-    _tag_pages = {"Philosophy": 'http://thoughtaudio.com'}
 
-    @classmethod
-    def _parse_page(cls, html, limit=-1):
-        soup = cls._get_soup(html)
-        for entry in soup.find_all("div", {"class": "bf-item"}):
-            try:
-                a = entry.find("a")
-                img = entry.find("img")
-                book = ThoughtAudioAudioBook(from_data={
-                    "title": entry.text,
-                    "url": a["href"],
-                    "img": img["src"]
-                })
-                book.from_page()  # parse url
-                yield book
-            except:
-                continue
-
-    @classmethod
-    def _parse_search_page(cls, html, limit=-1):
-        soup = cls._get_soup(html)
-        for entry in soup.find_all("article"):
-            try:
-                a = entry.find("a")
-                img = entry.find("img")
-                book = ThoughtAudioAudioBook(from_data={
-                    "title": a.text,
-                    "url": a["href"],
-                    "img": img["src"]
-                })
-                book.from_page()  # parse url
-                yield book
-            except:
-                continue
-
-    @classmethod
-    def scrap_popular(cls, limit=-1, offset=0):
-        html = requests.get(cls.base_url).text
-        return cls._parse_page(html)
-
-    @classmethod
-    def search_audiobooks(cls, since=None, author=None, title=None, tag=None,
-                          limit=25):
-        query = ""
-        if title:
-            query += title + " "
-        if tag:
-            query += tag + " "
-        if author:
-            query += author + " "
-        html = requests.get(cls.base_url, params={"s": query}).text
-        return cls._parse_search_page(html)
-
-    @classmethod
-    def get_audiobook(cls, book_id):
-        url = cls.base_url + '/' + book_id
-        book = ThoughtAudioAudioBook(url=url)
-        return book
-
-    @classmethod
-    def scrap_all_audiobooks(cls, limit=-1, offset=0):
+    def iterate_all(self):
         sm = SiteMapParser('http://thoughtaudio.com/wp-sitemap-posts-post-1.xml')  # reads /sitemap.xml
         urls = sm.get_urls()  # returns iterator of sitemapper.Url instances
         for url in urls:
             url = str(url)
-            title = url.strip("/").split("/")[-1].replace("-", " ").title()
-            yield ThoughtAudioAudioBook(url=url, title=title)
+            yield ThoughtAudioAudioBook(url=url).parse_page()
 
 
 if __name__ == "__main__":
     from pprint import pprint
 
     scraper = ThoughtAudio()
-    for book in scraper.search_audiobooks(title="machine"):
-        pprint(book.as_json)
-
-    for book in scraper.scrap_all_audiobooks():
-        pprint(book.as_json)
+    for book in scraper.iterate_all():
+        pprint(book)

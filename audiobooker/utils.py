@@ -1,4 +1,7 @@
 import random
+import re
+
+from bs4 import BeautifulSoup
 
 USER_AGENTS = [
     ('Mozilla/5.0 (X11; Linux x86_64) '
@@ -32,3 +35,58 @@ USER_AGENTS = [
 
 def random_user_agent():
     return random.choice(USER_AGENTS)
+
+
+def get_html(url, **kwargs):
+    from audiobooker.scrappers import AudioBookSource
+    try:
+        return AudioBookSource.session.get(url, **kwargs).text
+    except Exception as e:
+        try:
+            return AudioBookSource.session.get(url, verify=False, **kwargs).text
+        except:
+            return None
+
+
+def get_soup(url, **kwargs):
+    html = get_html(url, **kwargs)
+    if html:
+        return BeautifulSoup(html, "html.parser")
+
+
+def extract_year(title: str) -> int:
+    match = re.search(r'\b\d{4}\b', title)
+    if match:
+        return int(match.group())
+    return 0
+
+
+def extractor_narrator(title):
+    from audiobooker.base import AudiobookNarrator
+    narrator = None
+    title = title.replace("\xa0", " ").strip()
+    matches = re.findall(r'\b(?:read by|audiobook by|narrated by)\b\s*(.*?)(?:\s*–|$)', title, flags=re.IGNORECASE)
+
+    if matches:
+        narrator_str = matches[0].strip()  # Consider only the first "read by" occurrence
+        # Split the narrator's name using a regex pattern
+        names = re.findall(r'(?:[A-Z]\.)+|\S+', narrator_str)
+        # Ensure we only take up to two words for the narrator's name
+        names = names[:2]
+        if len(names) > 0:
+            first_name = names[0].strip()
+            last_name = " ".join(names[1:]).strip() if len(names) > 1 else ""
+            if last_name and first_name[0].isupper() and not last_name[0].isupper():
+                last_name = ""  # not part of the name
+            narrator = AudiobookNarrator(first_name=first_name.title(),
+                                         last_name=last_name.title())
+    return narrator
+
+
+def normalize_name(name):
+    """convert a name string to first and last name"""
+    name = name.replace("(", "").replace(")", "").title().strip()
+    if " " in name:
+        return name.split(" ", 1)
+    else:
+        return name, ""
